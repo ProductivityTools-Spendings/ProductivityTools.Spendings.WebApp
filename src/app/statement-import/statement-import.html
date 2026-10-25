@@ -1,0 +1,475 @@
+<div class="statement-import-container">
+  <div class="header-card">
+    <div>
+      <h2>Rekonsyliacja wyciągów mBank (HTML) z bazą wydatków</h2>
+      <p class="subtitle">
+        Importuj plik HTML z wyciągiem z mBanku do tabeli <code>mbank_statement_operations</code>, automatycznie uzgadniaj z e-mailami i jednym kliknięciem dodawaj brakujące operacje do <code>spendings</code> (z pełną kategoryzacją i przypisaniem kont).
+      </p>
+    </div>
+
+    <div class="controls-grid">
+      <div class="upload-bar">
+        <label class="file-input-label">
+          <input type="file" accept=".html,.htm" (change)="onFileSelected($event)" />
+          <span class="btn-secondary">Wybierz plik HTML...</span>
+        </label>
+        <span class="file-name" *ngIf="selectedFileName">{{ selectedFileName }}</span>
+        <span class="file-name muted" *ngIf="!selectedFileName">Nie wybrano pliku</span>
+
+        <button class="btn-primary" [disabled]="!selectedFile || loading || actionInProgress" (click)="importAndReconcile()">
+          {{ loading ? 'Importowanie i uzgadnianie...' : 'Importuj wyciąg do bazy i uzgodnij' }}
+        </button>
+      </div>
+
+      <div class="period-bar">
+        <label>
+          Od:
+          <input type="date" [(ngModel)]="periodFrom" />
+        </label>
+        <label>
+          Do:
+          <input type="date" [(ngModel)]="periodTo" />
+        </label>
+        <button class="btn-secondary" [disabled]="loading || actionInProgress" (click)="loadReconciliationView()">
+          Odśwież widok
+        </button>
+        <button class="btn-outline" [disabled]="loading || actionInProgress" (click)="reRunReconciliation()">
+          Uzgodnij ponownie okres
+        </button>
+      </div>
+    </div>
+
+    <div class="error-banner" *ngIf="error">
+      {{ error }}
+    </div>
+    <div class="success-banner" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+  </div>
+
+  <ng-container *ngIf="result">
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="summary-label">Zakres dat</span>
+        <span class="summary-value period">{{ result.periodFrom || '—' }} &rarr; {{ result.periodTo || '—' }}</span>
+        <span class="summary-sub">W bazie wyciągów: {{ result.totalInPeriodCount }} operacji</span>
+      </div>
+
+      <div class="summary-card missing" (click)="setTab('unreconciled')">
+        <span class="summary-label">Brakujące w bazie (UNRECONCILED)</span>
+        <span class="summary-value">{{ result.unreconciledCount }}</span>
+        <span class="summary-sub">Suma: {{ result.unreconciledTotalPln | number:'1.2-2' }} PLN</span>
+      </div>
+
+      <div class="summary-card warning" (click)="setTab('candidates')">
+        <span class="summary-label">Kandydaci ±3 dni (do weryfikacji)</span>
+        <span class="summary-value">{{ result.candidateDateShiftCount }}</span>
+        <span class="summary-sub">Ta sama kwota, przesunięta data</span>
+      </div>
+
+      <div class="summary-card imported" (click)="setTab('imported')">
+        <span class="summary-label">Dodane z wyciągu do wydatków</span>
+        <span class="summary-value">{{ result.importedToSpendingsCount }}</span>
+        <span class="summary-sub">Suma: {{ result.importedToSpendingsTotalPln | number:'1.2-2' }} PLN</span>
+      </div>
+
+      <div class="summary-card matched" (click)="setTab('matched')">
+        <span class="summary-label">Uzgodnione z e-mailami</span>
+        <span class="summary-value">{{ result.matchedEmailCount }}</span>
+        <span class="summary-sub">Powiązane z <code>mbank_raw_emails</code></span>
+      </div>
+
+      <div class="summary-card db-only" (click)="setTab('onlyInDb')">
+        <span class="summary-label">Tylko w bazie (brak na wyciągu)</span>
+        <span class="summary-value">{{ result.onlyInDbCount }}</span>
+        <span class="summary-sub">Zignorowane z wyciągu: {{ result.ignoredCount }}</span>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="tabs">
+        <button [class.active]="activeTab === 'unreconciled'" (click)="setTab('unreconciled')">
+          Brakujące w bazie ({{ filteredUnreconciledRows.length }})
+        </button>
+        <button [class.active]="activeTab === 'candidates'" (click)="setTab('candidates')">
+          Kandydaci ±3 dni ({{ filteredCandidateRows.length }})
+        </button>
+        <button [class.active]="activeTab === 'imported'" (click)="setTab('imported')">
+          Dodane z wyciągu ({{ filteredImportedRows.length }})
+        </button>
+        <button [class.active]="activeTab === 'matched'" (click)="setTab('matched')">
+          Uzgodnione z mailem ({{ filteredMatchedRows.length }})
+        </button>
+        <button [class.active]="activeTab === 'onlyInDb'" (click)="setTab('onlyInDb')">
+          Tylko w bazie ({{ filteredOnlyInDbRows.length }})
+        </button>
+        <button [class.active]="activeTab === 'ignored'" (click)="setTab('ignored')">
+          Zignorowane ({{ filteredIgnoredRows.length }})
+        </button>
+      </div>
+
+      <div class="search-controls">
+        <select [(ngModel)]="accountFilter" *ngIf="activeTab !== 'onlyInDb'">
+          <option value="ALL">Wszystkie rachunki z wyciągu</option>
+          <option *ngFor="let acc of availableAccounts" [value]="acc">{{ acc }}</option>
+        </select>
+
+        <input
+          type="text"
+          placeholder="Szukaj po opisie, kwocie, dacie..."
+          [(ngModel)]="searchQuery"
+        />
+      </div>
+    </div>
+
+    <!-- Bulk actions bar for Unreconciled tab -->
+    <div class="bulk-actions-bar" *ngIf="activeTab === 'unreconciled' && filteredUnreconciledRows.length > 0">
+      <div class="bulk-left">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [checked]="areAllFilteredUnreconciledSelected()"
+            (change)="toggleSelectAllFilteredUnreconciled($event)"
+          />
+          Zaznacz wszystkie widoczne ({{ filteredUnreconciledRows.length }})
+        </label>
+        <span class="selected-count" *ngIf="selectedStatementIds.size > 0">
+          Zaznaczono: <strong>{{ selectedStatementIds.size }}</strong>
+        </span>
+      </div>
+
+      <div class="bulk-buttons">
+        <input
+          class="category-input"
+          list="stmt-categories"
+          placeholder="Kategoria dla zaznaczonych"
+          [(ngModel)]="bulkCategory"
+        />
+        <button
+          class="btn-ghost"
+          [disabled]="selectedStatementIds.size === 0 || !bulkCategory.trim()"
+          (click)="applyBulkCategory()"
+          title="Ustaw tę kategorię we wszystkich zaznaczonych wierszach"
+        >
+          Ustaw kategorię
+        </button>
+        <button
+          class="btn-success"
+          [disabled]="selectedStatementIds.size === 0 || actionInProgress"
+          (click)="promoteSelected()"
+        >
+          + Dodaj zaznaczone do wydatków ({{ selectedStatementIds.size }})
+        </button>
+        <button
+          class="btn-primary"
+          [disabled]="filteredUnreconciledRows.length === 0 || actionInProgress"
+          (click)="promoteAllFilteredUnreconciled()"
+        >
+          ++ Dodaj wszystkie widoczne ({{ filteredUnreconciledRows.length }})
+        </button>
+      </div>
+    </div>
+
+    <datalist id="stmt-categories">
+      <option *ngFor="let c of categories" [value]="c"></option>
+    </datalist>
+
+    <!-- TAB 1: UNRECONCILED -->
+    <div class="table-wrapper" *ngIf="activeTab === 'unreconciled'">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th style="width: 36px;"></th>
+            <th>ID</th>
+            <th>Data operacji</th>
+            <th>Tytuł / Opis operacji</th>
+            <th>Typ operacji</th>
+            <th>Rachunek (wyciąg)</th>
+            <th>Kategoria</th>
+            <th class="right">Kwota</th>
+            <th class="right">Akcje</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filteredUnreconciledRows" [class.row-selected]="isSelected(row.id)">
+            <td>
+              <input
+                type="checkbox"
+                [checked]="isSelected(row.id)"
+                (change)="toggleSelection(row.id, $event)"
+              />
+            </td>
+            <td class="mono">#{{ row.id }}</td>
+            <td class="mono">{{ row.operationDate }}</td>
+            <td>
+              <div class="main-title">{{ row.title }}</div>
+              <div class="raw-desc" *ngIf="row.rawDescription !== row.title">{{ row.rawDescription }}</div>
+              <div class="dst-acc" *ngIf="row.dstAccount">Konto docelowe: <code>{{ row.dstAccount }}</code></div>
+            </td>
+            <td><span class="badge">{{ row.operationType || '—' }}</span></td>
+            <td>
+              <div><strong>{{ row.accountName }}</strong></div>
+              <div class="muted small">{{ row.resolvedAccountNumber || row.accountMask }}</div>
+            </td>
+            <td class="category-cell">
+              <input
+                *ngIf="row.id != null"
+                class="category-input"
+                list="stmt-categories"
+                placeholder="(automatycznie)"
+                [ngModel]="chosenCategories[row.id] || ''"
+                (ngModelChange)="setChosenCategory(row.id, $event)"
+              />
+              <div class="muted small" *ngIf="row.mbankCategory">mBank: {{ row.mbankCategory }}</div>
+            </td>
+            <td class="right amount-missing">{{ row.amount | number:'1.2-2' }} {{ row.currency }}</td>
+            <td class="right actions-cell">
+              <button
+                class="btn-sm btn-success"
+                [disabled]="actionInProgress"
+                (click)="promoteSingle(row.id)"
+                title="Utwórz rekord w spendings i uruchom reguły wzbogacania (konto, kategoria, Allegro)"
+              >
+                + Dodaj do wydatków
+              </button>
+              <button
+                class="btn-sm btn-ghost"
+                [disabled]="actionInProgress"
+                (click)="row.id && setIgnored([row.id], true)"
+              >
+                Ignoruj
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredUnreconciledRows.length === 0">
+            <td colspan="9" class="empty-state">Brak nieuzgodnionych operacji dla wybranych filtrów.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 2: CANDIDATES (±3 days) -->
+    <div class="table-wrapper" *ngIf="activeTab === 'candidates'">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>Data (Wyciąg vs Baza)</th>
+            <th>Powód dopasowania</th>
+            <th>Opis w wyciągu mBank</th>
+            <th>Istniejący wpis w bazie (spendings)</th>
+            <th class="right">Kwota</th>
+            <th class="right">Decyzja</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredCandidateRows">
+            <td class="mono">
+              <div>Wyciąg: <strong>{{ item.statementRow.operationDate }}</strong></div>
+              <div class="muted">Baza: {{ item.candidateSpending.effectiveDate }} ({{ item.dateDiffDays > 0 ? '+' : '' }}{{ item.dateDiffDays }} dni)</div>
+            </td>
+            <td><span class="badge warning-badge">{{ item.reason }}</span></td>
+            <td>
+              <div class="main-title">{{ item.statementRow.title }}</div>
+              <div class="raw-desc">{{ item.statementRow.accountName }} | {{ item.statementRow.operationType }}</div>
+            </td>
+            <td>
+              <div class="main-title">[#{{ item.candidateSpending.id }}] {{ item.candidateSpending.title }}</div>
+              <div class="raw-desc">
+                Konto: <strong>{{ item.candidateSpending.accountKey || '—' }}</strong> |
+                Kategoria: <strong>{{ item.candidateSpending.categoryName || '—' }}</strong>
+              </div>
+            </td>
+            <td class="right amount-cell">{{ item.statementRow.amount | number:'1.2-2' }} {{ item.statementRow.currency }}</td>
+            <td class="right actions-cell">
+              <button
+                class="btn-sm btn-primary"
+                [disabled]="actionInProgress"
+                (click)="linkCandidate(item.statementRow.id, item.candidateSpending.id)"
+                title="To ten sam wydatek (np. przesunięcie daty księgowania) — połącz z istniejącym rekordem"
+              >
+                Połącz z #{{ item.candidateSpending.id }}
+              </button>
+              <button
+                class="btn-sm btn-success"
+                [disabled]="actionInProgress"
+                (click)="promoteSingle(item.statementRow.id)"
+                title="To osobna transakcja na tę samą kwotę — utwórz nowy wydatek"
+              >
+                + Dodaj jako nowy
+              </button>
+              <button
+                class="btn-sm btn-ghost"
+                [disabled]="actionInProgress"
+                (click)="item.statementRow.id && setIgnored([item.statementRow.id], true)"
+              >
+                Ignoruj
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredCandidateRows.length === 0">
+            <td colspan="6" class="empty-state">Brak kandydatów z przesuniętą datą.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3: IMPORTED TO SPENDINGS -->
+    <div class="table-wrapper" *ngIf="activeTab === 'imported'">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>ID wyciągu</th>
+            <th>Data operacji</th>
+            <th>Opis w wyciągu mBank</th>
+            <th>Rachunek (wyciąg)</th>
+            <th>Utworzony rekord w <code>spendings</code> (po wzbogaceniu)</th>
+            <th class="right">Kwota</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredImportedRows">
+            <td class="mono">#{{ item.statementRow.id }}</td>
+            <td class="mono">{{ item.statementRow.operationDate }}</td>
+            <td>
+              <div class="main-title">{{ item.statementRow.title }}</div>
+              <div class="raw-desc">{{ item.statementRow.rawDescription }}</div>
+            </td>
+            <td>{{ item.statementRow.accountName }}</td>
+            <td>
+              <ng-container *ngIf="item.linkedSpending; else noLinkedSpending">
+                <div class="main-title">
+                  <span class="badge matched-badge">spendings #{{ item.linkedSpending.id }}</span>
+                  {{ item.linkedSpending.title }}
+                </div>
+                <div class="raw-desc">
+                  Konto: <strong>{{ item.linkedSpending.accountKey || 'Brak przypisanego konta' }}</strong> |
+                  Kategoria: <strong>{{ item.linkedSpending.categoryName || 'Brak kategorii' }}</strong>
+                </div>
+              </ng-container>
+              <ng-template #noLinkedSpending>
+                <span class="muted">Powiązany wydatek #{{ item.statementRow.matchedSpendingId }}</span>
+              </ng-template>
+            </td>
+            <td class="right amount-imported">{{ item.statementRow.amount | number:'1.2-2' }} {{ item.statementRow.currency }}</td>
+          </tr>
+          <tr *ngIf="filteredImportedRows.length === 0">
+            <td colspan="6" class="empty-state">Nie dodano jeszcze żadnych operacji z wyciągu do wydatków w tym okresie.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 4: MATCHED WITH EMAIL -->
+    <div class="table-wrapper" *ngIf="activeTab === 'matched'">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Typ dopasowania</th>
+            <th>Wyciąg mBank</th>
+            <th>Baza danych (spendings z e-maila)</th>
+            <th class="right">Kwota</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredMatchedRows">
+            <td class="mono">{{ item.statementRow.operationDate }}</td>
+            <td><span class="badge matched-badge">{{ item.matchReason }}</span></td>
+            <td>
+              <div class="main-title">{{ item.statementRow.title }}</div>
+              <div class="raw-desc">{{ item.statementRow.accountName }} ({{ item.statementRow.mbankCategory }})</div>
+            </td>
+            <td>
+              <div class="main-title">[#{{ item.matchedSpending.id }}] {{ item.matchedSpending.title }}</div>
+              <div class="raw-desc">
+                Konto: <strong>{{ item.matchedSpending.accountKey || '—' }}</strong> |
+                Kategoria: <strong>{{ item.matchedSpending.categoryName || '—' }}</strong>
+              </div>
+            </td>
+            <td class="right amount-matched">{{ item.statementRow.amount | number:'1.2-2' }} {{ item.statementRow.currency }}</td>
+          </tr>
+          <tr *ngIf="filteredMatchedRows.length === 0">
+            <td colspan="5" class="empty-state">Brak uzgodnionych operacji dla wybranych filtrów.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 5: ONLY IN DB -->
+    <div class="table-wrapper" *ngIf="activeTab === 'onlyInDb'">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>ID w bazie</th>
+            <th>Data efektywna</th>
+            <th>Tytuł w bazie</th>
+            <th>Typ operacji</th>
+            <th>Konto / Kategoria</th>
+            <th class="right">Kwota</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filteredOnlyInDbRows">
+            <td class="mono">#{{ row.id }}</td>
+            <td class="mono">
+              {{ row.effectiveDate }}
+              <div class="muted small" *ngIf="row.rawOperationDate && row.rawOperationDate !== row.effectiveDate">
+                raw: {{ row.rawOperationDate }}
+              </div>
+            </td>
+            <td><div class="main-title">{{ row.title }}</div></td>
+            <td><span class="badge">{{ row.operationType || '—' }}</span></td>
+            <td>
+              <div>Konto: <strong>{{ row.accountKey || '—' }}</strong></div>
+              <div class="muted small">Kat: {{ row.categoryName || '—' }}</div>
+            </td>
+            <td class="right amount-cell">{{ row.amount | number:'1.2-2' }} {{ row.currency }}</td>
+          </tr>
+          <tr *ngIf="filteredOnlyInDbRows.length === 0">
+            <td colspan="6" class="empty-state">Brak pozycji występujących wyłącznie w bazie.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 6: IGNORED -->
+    <div class="table-wrapper" *ngIf="activeTab === 'ignored'">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data operacji</th>
+            <th>Opis w wyciągu</th>
+            <th>Rachunek</th>
+            <th class="right">Kwota</th>
+            <th class="right">Akcja</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filteredIgnoredRows">
+            <td class="mono">#{{ row.id }}</td>
+            <td class="mono">{{ row.operationDate }}</td>
+            <td>
+              <div class="main-title">{{ row.title }}</div>
+              <div class="raw-desc">{{ row.rawDescription }}</div>
+            </td>
+            <td>{{ row.accountName }}</td>
+            <td class="right amount-cell">{{ row.amount | number:'1.2-2' }} {{ row.currency }}</td>
+            <td class="right">
+              <button
+                class="btn-sm btn-secondary"
+                [disabled]="actionInProgress"
+                (click)="row.id && setIgnored([row.id], false)"
+              >
+                Przywróć
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredIgnoredRows.length === 0">
+            <td colspan="6" class="empty-state">Brak zignorowanych operacji.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+</div>

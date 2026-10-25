@@ -7,6 +7,7 @@ import { DictionaryCategoryMappings } from './dictionary-category-mappings/dicti
 import { AllegroEmails } from './allegro-emails/allegro-emails';
 import { AllegroPurchases } from './allegro-purchases/allegro-purchases';
 import { Reports } from './reports/reports';
+import { StatementImport } from './statement-import/statement-import';
 import { Login } from './auth/login';
 import { authGuard, guestGuard } from './auth/auth.guard';
 
@@ -19,6 +20,7 @@ export const routes: Routes = [
   { path: 'allegro/emails', component: AllegroEmails, title: 'E-maile Allegro', canActivate: [authGuard] },
   { path: 'allegro/purchases', component: AllegroPurchases, title: 'Zakupy Allegro', canActivate: [authGuard] },
   { path: 'reports', component: Reports, title: 'Raporty', canActivate: [authGuard] },
+  { path: 'statement-import', component: StatementImport, title: 'Import wyciągu', canActivate: [authGuard] },
   { path: 'dictionary/accounts', component: DictionaryAccounts, title: 'Słownik rachunków', canActivate: [authGuard] },
   { path: 'dictionary/categories', component: DictionaryCategoryMappings, title: 'Słownik kategorii', canActivate: [authGuard] },
   { path: '**', redirectTo: 'spendings' },
