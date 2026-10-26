@@ -1,0 +1,143 @@
+<section class="dict">
+  <header class="dict__header">
+    <h2>Reguły rachunków</h2>
+    <div class="dict__actions">
+      <span class="dict__count">{{ rows().length }} reguł</span>
+      <button type="button" (click)="load()" [disabled]="loading()">Odśwież</button>
+      <button type="button" (click)="applyAll()" [disabled]="applying() || loading() || rows().length === 0">
+        {{ applying() ? 'Stosowanie…' : 'Zastosuj reguły' }}
+      </button>
+    </div>
+  </header>
+
+  @if (error()) { <p class="dict__error">{{ error() }}</p> }
+  @if (status()) { <p class="dict__status">{{ status() }}</p> }
+
+  <p class="dict__hint">
+    Każdy wydatek wychodzący z rachunku lub przychodzący na rachunek z reguły dostaje wskazaną kategorię
+    (np. własne rachunki → <code>PrzelewWlasny</code>). Rachunki są porównywane po ostatnich 6 cyfrach, bo w e-mailach
+    numer drugiej strony jest maskowany. Reguły działają automatycznie przy przetwarzaniu e-maili i dodawaniu operacji
+    z wyciągu, przed słownikiem „nazwa → kategoria”. „Zastosuj reguły” przelicza istniejące wydatki.
+  </p>
+
+  <form class="dict__form" (ngSubmit)="create()">
+    <input name="accountNumber" [ngModel]="newAccountNumber" (ngModelChange)="onNewAccountChange($event)"
+           list="rule-accounts" placeholder="Numer rachunku (min. 6 ostatnich cyfr)" autocomplete="off" />
+    <datalist id="rule-accounts">
+      @for (a of accounts(); track a.key) { <option [value]="a.key">{{ a.name }}</option> }
+    </datalist>
+    <input name="label" [(ngModel)]="newLabel" placeholder="Opis (np. Dedicated-Wyplaty)" autocomplete="off" />
+    <select name="category" [(ngModel)]="newCategory">
+      <option value="">— wybierz kategorię —</option>
+      @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
+    </select>
+    <label title="Zaznaczone: reguła nadpisuje istniejące kategorie. Odznaczone: uzupełnia tylko wydatki bez kategorii.">
+      <input type="checkbox" name="overwrite" [(ngModel)]="newOverwrite" /> nadpisuj kategorie
+    </label>
+    <button type="submit" [disabled]="creating()">{{ creating() ? 'Dodawanie…' : 'Dodaj' }}</button>
+  </form>
+
+  @if (loading()) {
+    <p class="dict__info">Ładowanie…</p>
+  } @else if (rows().length === 0) {
+    <p class="dict__info">Brak reguł.</p>
+  } @else {
+    <table class="dict__table">
+      <thead>
+        <tr>
+          <th>Rachunek</th>
+          <th>Opis</th>
+          <th>Kategoria</th>
+          <th>Nadpisuje</th>
+          <th class="num">Wydatków</th>
+          <th class="num">Do zmiany</th>
+          <th class="actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.id) {
+          <tr [class.editing]="r.editing">
+            @if (r.editing) {
+              <td><input [(ngModel)]="r.draftAccountNumber" [name]="'acc-' + r.id" list="rule-accounts" (keyup.escape)="cancelEdit(r)" /></td>
+              <td><input [(ngModel)]="r.draftLabel" [name]="'label-' + r.id" (keyup.enter)="save(r)" (keyup.escape)="cancelEdit(r)" /></td>
+              <td>
+                <select [(ngModel)]="r.draftCategory" [name]="'cat-' + r.id">
+                  @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
+                </select>
+              </td>
+              <td><input type="checkbox" [(ngModel)]="r.draftOverwrite" [name]="'ow-' + r.id" /></td>
+              <td class="num">{{ r.matchedCount }}</td>
+              <td class="num">{{ r.toChangeCount }}</td>
+              <td class="actions">
+                <button type="button" (click)="save(r)" [disabled]="r.saving">{{ r.saving ? '…' : 'Zapisz' }}</button>
+                <button type="button" class="secondary" (click)="cancelEdit(r)" [disabled]="r.saving">Anuluj</button>
+              </td>
+            } @else {
+              <td>
+                <span class="mono">{{ r.accountNumber }}</span>
+                @if (accountName(r.accountNumber); as n) { <div class="dict__meta">słownik: {{ n }}</div> }
+              </td>
+              <td>{{ r.label || '—' }}</td>
+              <td>{{ r.category }}</td>
+              <td>{{ r.overwrite ? 'tak' : 'tylko puste' }}</td>
+              <td class="num">{{ r.matchedCount }}</td>
+              <td class="num">{{ r.toChangeCount }}</td>
+              <td class="actions">
+                <button type="button" class="secondary" (click)="showPreview(r)">Wydatki</button>
+                <button type="button" class="secondary" (click)="startEdit(r)" [disabled]="r.saving">Edytuj</button>
+                <button type="button" class="danger" (click)="remove(r)" [disabled]="r.saving">Usuń</button>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (previewRule(); as p) {
+    <h3 class="dict__panel-title">
+      Wydatki z/na rachunek {{ p.accountNumber }}{{ p.label ? ' (' + p.label + ')' : '' }}
+      <button type="button" class="secondary" (click)="closePreview()">Zamknij</button>
+    </h3>
+    @if (previewLoading()) {
+      <p class="dict__info">Ładowanie…</p>
+    } @else if (previewRows().length === 0) {
+      <p class="dict__info">Brak wydatków dla tego rachunku.</p>
+    } @else {
+      <table class="dict__table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data</th>
+            <th>Typ</th>
+            <th>Nazwa</th>
+            <th>Z rachunku</th>
+            <th>Na rachunek</th>
+            <th class="num">Kwota</th>
+            <th>Kategoria</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of previewRows(); track s.id) {
+            <tr>
+              <td class="mono">#{{ s.id }}</td>
+              <td class="mono">{{ s.operationDate }}</td>
+              <td>{{ s.operationType }}</td>
+              <td>{{ s.name }}</td>
+              <td class="mono">{{ s.srcAccount }}</td>
+              <td class="mono">{{ s.dstAccount }}</td>
+              <td class="num">{{ s.amount | number:'1.2-2' }} {{ s.currency }}</td>
+              <td>
+                @if (s.willChange) {
+                  {{ s.category || '(brak)' }} → <strong>{{ p.category }}</strong>
+                } @else {
+                  {{ s.category || '(brak)' }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</section>

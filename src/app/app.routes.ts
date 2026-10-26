@@ -8,6 +8,7 @@ import { AllegroEmails } from './allegro-emails/allegro-emails';
 import { AllegroPurchases } from './allegro-purchases/allegro-purchases';
 import { Reports } from './reports/reports';
 import { StatementImport } from './statement-import/statement-import';
+import { AccountCategoryRules } from './account-category-rules/account-category-rules';
 import { Login } from './auth/login';
 import { authGuard, guestGuard } from './auth/auth.guard';
 
@@ -23,5 +24,6 @@ export const routes: Routes = [
   { path: 'statement-import', component: StatementImport, title: 'Import wyciągu', canActivate: [authGuard] },
   { path: 'dictionary/accounts', component: DictionaryAccounts, title: 'Słownik rachunków', canActivate: [authGuard] },
   { path: 'dictionary/categories', component: DictionaryCategoryMappings, title: 'Słownik kategorii', canActivate: [authGuard] },
+  { path: 'dictionary/account-rules', component: AccountCategoryRules, title: 'Reguły rachunków', canActivate: [authGuard] },
   { path: '**', redirectTo: 'spendings' },
 ];
