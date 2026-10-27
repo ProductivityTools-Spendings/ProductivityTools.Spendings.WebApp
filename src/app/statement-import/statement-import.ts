@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { SpendingService } from '../services/spending.service';
+import { CategoryPicker } from '../shared/category-picker';
 
 export interface MBankStatementRowDto {
   id: number | null;
@@ -85,7 +86,7 @@ type ActiveTab = 'unreconciled' | 'candidates' | 'imported' | 'matched' | 'onlyI
 @Component({
   selector: 'app-statement-import',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CategoryPicker],
   templateUrl: './statement-import.html',
   styleUrl: './statement-import.css'
 })
@@ -111,6 +112,8 @@ export class StatementImport implements OnInit {
   accountFilter = 'ALL';
 
   selectedStatementIds = new Set<number>();
+  /** Statement operation ids selected on the candidates tab. */
+  selectedCandidateIds = new Set<number>();
 
   /** Known category names (dictionary_category) offered in the category pickers. */
   categories: string[] = [];
@@ -275,7 +278,7 @@ export class StatementImport implements OnInit {
         statementRow: r.statementRow ? normalizeRow(r.statementRow, i) : normalizeRow(r, i),
         candidateSpending: r.candidateSpending,
         dateDiffDays: r.dateDiffDays ?? 0,
-        reason: r.reason ?? r.matchType ?? 'Kandydat (±3 dni)',
+        reason: r.reason ?? candidateReasonLabel(r.matchType ?? r.statementRow?.matchType, r.dateDiffDays),
       }))
       .filter((item: StatementCandidateItemDto) => item.candidateSpending != null);
 
@@ -324,6 +327,7 @@ export class StatementImport implements OnInit {
     if (normalized.periodFrom && !this.periodFrom) this.periodFrom = normalized.periodFrom;
     if (normalized.periodTo && !this.periodTo) this.periodTo = normalized.periodTo;
     this.selectedStatementIds.clear();
+    this.selectedCandidateIds.clear();
     return normalized;
   }
 
@@ -361,6 +365,68 @@ export class StatementImport implements OnInit {
         }
       }
     }
+  }
+
+  isCandidateSelected(id: number | null): boolean {
+    return id != null && this.selectedCandidateIds.has(id);
+  }
+
+  toggleCandidateSelection(id: number | null, event: Event): void {
+    if (id == null) return;
+    if ((event.target as HTMLInputElement).checked) {
+      this.selectedCandidateIds.add(id);
+    } else {
+      this.selectedCandidateIds.delete(id);
+    }
+  }
+
+  areAllFilteredCandidatesSelected(): boolean {
+    const ids = this.filteredCandidateRows.map((c) => c.statementRow.id).filter((id): id is number => id != null);
+    return ids.length > 0 && ids.every((id) => this.selectedCandidateIds.has(id));
+  }
+
+  toggleSelectAllFilteredCandidates(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    for (const item of this.filteredCandidateRows) {
+      const id = item.statementRow.id;
+      if (id == null) continue;
+      if (checked) this.selectedCandidateIds.add(id); else this.selectedCandidateIds.delete(id);
+    }
+  }
+
+  /** Confirms all selected candidate pairs with one request. */
+  linkSelectedCandidates(): void {
+    const ids = Array.from(this.selectedCandidateIds);
+    if (ids.length === 0) return;
+    this.actionInProgress = true;
+    this.error = null;
+    this.successMessage = null;
+    this.cdr.detectChanges();
+    const body: Record<string, unknown> = { statementOperationIds: ids };
+    if (this.periodFrom) body['from'] = this.periodFrom;
+    if (this.periodTo) body['to'] = this.periodTo;
+    this.http.post<{ linkedCount: number; report: any }>(`${this.apiUrl}/api/mbank-statements/link-candidates`, body).subscribe({
+      next: (res) => {
+        this.actionInProgress = false;
+        const skipped = ids.length - res.linkedCount;
+        this.successMessage = `Połączono ${res.linkedCount} z ${ids.length} zaznaczonych kandydatów`
+          + (skipped > 0 ? ` (pominięto ${skipped} – transakcja jest już połączona z inną operacją).` : '.');
+        this.applyResult(res.report);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.actionInProgress = false;
+        this.error = err?.error?.message || err?.message || 'Błąd podczas łączenia kandydatów.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Selected candidates are separate transactions - create new spendings for them (one request). */
+  promoteSelectedCandidates(): void {
+    const ids = Array.from(this.selectedCandidateIds);
+    if (ids.length === 0) return;
+    this.promoteIds(ids, `Dodano ${ids.length} operacji z wyciągu jako nowe wydatki.`);
   }
 
   promoteSelected(): void {
@@ -594,5 +660,18 @@ export class StatementImport implements OnInit {
         String(row.amount).includes(q)
       );
     });
+  }
+}
+
+/** Human-readable reason for a reconciliation candidate. */
+function candidateReasonLabel(matchType: string | null | undefined, dateDiffDays: number | null | undefined): string {
+  const days = dateDiffDays != null ? ` (${dateDiffDays} dni)` : '';
+  switch (matchType) {
+    case 'DATE_SHIFT_LONG':
+      return `Ta sama kwota i nazwa, inna data${days}`;
+    case 'DATE_SHIFT':
+      return `Przesunięcie daty${days}`;
+    default:
+      return matchType ?? 'Kandydat';
   }
 }

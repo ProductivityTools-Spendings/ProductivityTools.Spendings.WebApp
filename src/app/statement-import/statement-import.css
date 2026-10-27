@@ -494,8 +494,8 @@
   font-size: 13px;
 }
 
-.bulk-buttons .category-input {
-  width: 200px;
+.bulk-buttons .bulk-category {
+  width: 220px;
 }
 
 /* Manual link picker */

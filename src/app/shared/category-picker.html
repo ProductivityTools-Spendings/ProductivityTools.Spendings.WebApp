@@ -1,0 +1,32 @@
+<div class="cp">
+  <input
+    #input
+    class="cp__input"
+    [value]="value || ''"
+    [placeholder]="placeholder"
+    autocomplete="off"
+    (input)="onInput(input.value)"
+    (focus)="show()"
+    (click)="show()"
+    (keydown)="onKeydown($event)"
+  />
+  @if (value) {
+    <button type="button" class="cp__clear" title="Wyczyść" (mousedown)="clear($event)">✕</button>
+  }
+  @if (open) {
+    <ul class="cp__list" [style]="listStyle">
+      @for (c of filtered; track c; let i = $index) {
+        <li
+          class="cp__item"
+          [class.cp__item--active]="i === activeIndex"
+          [class.cp__item--selected]="c === value"
+          (mousedown)="$event.preventDefault(); select(c)"
+        >{{ c }}</li>
+      } @empty {
+        <li class="cp__empty">
+          @if (value.trim()) { Nowa kategoria: <strong>{{ value.trim() }}</strong> } @else { Brak kategorii }
+        </li>
+      }
+    </ul>
+  }
+</div>

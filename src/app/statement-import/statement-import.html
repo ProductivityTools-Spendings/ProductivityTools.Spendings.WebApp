@@ -62,7 +62,7 @@
       </div>
 
       <div class="summary-card warning" (click)="setTab('candidates')">
-        <span class="summary-label">Kandydaci ±3 dni (do weryfikacji)</span>
+        <span class="summary-label">Kandydaci (do weryfikacji)</span>
         <span class="summary-value">{{ result.candidateDateShiftCount }}</span>
         <span class="summary-sub">Ta sama kwota, przesunięta data</span>
       </div>
@@ -92,7 +92,7 @@
           Brakujące w bazie ({{ filteredUnreconciledRows.length }})
         </button>
         <button [class.active]="activeTab === 'candidates'" (click)="setTab('candidates')">
-          Kandydaci ±3 dni ({{ filteredCandidateRows.length }})
+          Kandydaci ({{ filteredCandidateRows.length }})
         </button>
         <button [class.active]="activeTab === 'imported'" (click)="setTab('imported')">
           Dodane z wyciągu ({{ filteredImportedRows.length }})
@@ -139,12 +139,12 @@
       </div>
 
       <div class="bulk-buttons">
-        <input
-          class="category-input"
-          list="stmt-categories"
+        <app-category-picker
+          class="bulk-category"
+          [categories]="categories"
           placeholder="Kategoria dla zaznaczonych"
-          [(ngModel)]="bulkCategory"
-        />
+          [(value)]="bulkCategory"
+        ></app-category-picker>
         <button
           class="btn-ghost"
           [disabled]="selectedStatementIds.size === 0 || !bulkCategory.trim()"
@@ -169,10 +169,6 @@
         </button>
       </div>
     </div>
-
-    <datalist id="stmt-categories">
-      <option *ngFor="let c of categories" [value]="c"></option>
-    </datalist>
 
     <!-- TAB 1: UNRECONCILED -->
     <div class="table-wrapper" *ngIf="activeTab === 'unreconciled'">
@@ -212,14 +208,13 @@
               <div class="muted small">{{ row.resolvedAccountNumber || row.accountMask }}</div>
             </td>
             <td class="category-cell">
-              <input
+              <app-category-picker
                 *ngIf="row.id != null"
-                class="category-input"
-                list="stmt-categories"
+                [categories]="categories"
                 placeholder="(automatycznie)"
-                [ngModel]="chosenCategories[row.id] || ''"
-                (ngModelChange)="setChosenCategory(row.id, $event)"
-              />
+                [value]="chosenCategories[row.id] || ''"
+                (valueChange)="setChosenCategory(row.id, $event)"
+              ></app-category-picker>
               <div class="muted small" *ngIf="row.mbankCategory">mBank: {{ row.mbankCategory }}</div>
             </td>
             <td class="right amount-missing">{{ row.amount | number:'1.2-2' }} {{ row.currency }}</td>
@@ -256,11 +251,47 @@
       </table>
     </div>
 
-    <!-- TAB 2: CANDIDATES (±3 days) -->
+    <!-- Bulk actions bar for Candidates tab -->
+    <div class="bulk-actions-bar" *ngIf="activeTab === 'candidates' && filteredCandidateRows.length > 0">
+      <div class="bulk-left">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [checked]="areAllFilteredCandidatesSelected()"
+            (change)="toggleSelectAllFilteredCandidates($event)"
+          />
+          Zaznacz wszystkie widoczne ({{ filteredCandidateRows.length }})
+        </label>
+        <span class="selected-count" *ngIf="selectedCandidateIds.size > 0">
+          Zaznaczono: <strong>{{ selectedCandidateIds.size }}</strong>
+        </span>
+      </div>
+      <div class="bulk-buttons">
+        <button
+          class="btn-primary"
+          [disabled]="selectedCandidateIds.size === 0 || actionInProgress"
+          (click)="linkSelectedCandidates()"
+          title="Każdą zaznaczoną operację połącz z proponowaną transakcją"
+        >
+          Połącz zaznaczone ({{ selectedCandidateIds.size }})
+        </button>
+        <button
+          class="btn-success"
+          [disabled]="selectedCandidateIds.size === 0 || actionInProgress"
+          (click)="promoteSelectedCandidates()"
+          title="Zaznaczone to osobne transakcje – utwórz dla nich nowe wydatki"
+        >
+          + Dodaj zaznaczone jako nowe ({{ selectedCandidateIds.size }})
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 2: CANDIDATES (date shift ±3 days, or same amount + name up to ±31 days) -->
     <div class="table-wrapper" *ngIf="activeTab === 'candidates'">
       <table class="diff-table">
         <thead>
           <tr>
+            <th style="width: 36px;"></th>
             <th>Data (Wyciąg vs Baza)</th>
             <th>Powód dopasowania</th>
             <th>Opis w wyciągu mBank</th>
@@ -270,7 +301,14 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of filteredCandidateRows">
+          <tr *ngFor="let item of filteredCandidateRows" [class.row-selected]="isCandidateSelected(item.statementRow.id)">
+            <td>
+              <input
+                type="checkbox"
+                [checked]="isCandidateSelected(item.statementRow.id)"
+                (change)="toggleCandidateSelection(item.statementRow.id, $event)"
+              />
+            </td>
             <td class="mono">
               <div>Wyciąg: <strong>{{ item.statementRow.operationDate }}</strong></div>
               <div class="muted">Baza: {{ item.candidateSpending.effectiveDate }} ({{ item.dateDiffDays > 0 ? '+' : '' }}{{ item.dateDiffDays }} dni)</div>
@@ -323,7 +361,7 @@
             </td>
           </tr>
           <tr *ngIf="filteredCandidateRows.length === 0">
-            <td colspan="6" class="empty-state">Brak kandydatów z przesuniętą datą.</td>
+            <td colspan="7" class="empty-state">Brak kandydatów z przesuniętą datą.</td>
           </tr>
         </tbody>
       </table>

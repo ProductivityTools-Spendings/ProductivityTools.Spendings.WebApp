@@ -1,0 +1,80 @@
+:host {
+  display: block;
+}
+
+.cp {
+  position: relative;
+}
+
+.cp__input {
+  width: 100%;
+  min-width: 120px;
+  box-sizing: border-box;
+  padding: 4px 22px 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.cp__input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.cp__clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px;
+  line-height: 1;
+}
+
+.cp__clear:hover {
+  color: #475569;
+}
+
+.cp__list {
+  position: fixed;
+  z-index: 2000;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  font-size: 13px;
+  text-align: left;
+}
+
+.cp__item {
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #0f172a;
+}
+
+.cp__item:hover,
+.cp__item--active {
+  background: #eff6ff;
+}
+
+.cp__item--selected {
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.cp__empty {
+  padding: 6px 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
