@@ -347,6 +347,8 @@
 
 .bulk-buttons {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
 }
 
@@ -435,10 +437,22 @@
   white-space: nowrap;
 }
 
+/* Buttons stacked vertically so the actions column stays narrow and no button is pushed out of view */
 .actions-cell {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
+  width: 1%;
+  min-width: 140px;
+  text-align: right;
+}
+
+.actions-cell .btn-sm {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.actions-cell .btn-sm:last-child {
+  margin-bottom: 0;
 }
 
 .amount-missing {
@@ -468,12 +482,12 @@
 }
 
 .category-cell {
-  min-width: 180px;
+  min-width: 140px;
 }
 
 .category-input {
   width: 100%;
-  min-width: 160px;
+  min-width: 120px;
   padding: 4px 6px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
