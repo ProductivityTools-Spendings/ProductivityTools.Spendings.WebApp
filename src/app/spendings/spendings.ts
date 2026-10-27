@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { Spending } from '../models/spending';
 import { FillResult, RefundState, SpendingService } from '../services/spending.service';
@@ -12,7 +13,7 @@ type Action = 'process' | 'fillAccounts' | 'fillCategories' | 'markDuplicates' |
 
 @Component({
   selector: 'app-spendings',
-  imports: [CurrencyPipe, DecimalPipe, FormsModule],
+  imports: [CurrencyPipe, DecimalPipe, FormsModule, RouterLink],
   templateUrl: './spendings.html',
   styleUrl: './spendings.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

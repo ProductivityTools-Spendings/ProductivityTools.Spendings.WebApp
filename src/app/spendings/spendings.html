@@ -73,12 +73,12 @@
                 [class.highlight]="highlight() === s.id"
                 [class.refund-candidate]="isRefundCandidate(s)"
                 [title]="s.duplicateOf !== null ? 'Duplikat transakcji #' + s.duplicateOf : (isPrimary(s) ? 'Operacja podstawowa – ma duplikat' : '')">
-              <td>{{ s.id }}</td>
+              <td><a [routerLink]="['/spendings', s.id]" title="Szczegóły transakcji">{{ s.id }}</a></td>
               <td>{{ s.operationDate }}</td>
               <td>{{ s.operationTime }}</td>
               <td>{{ s.operationType }}@if (s.duplicateOf !== null) { <span class="dup-badge">dupl. #{{ s.duplicateOf }}</span> }</td>
               <td class="name" [title]="s.details">
-                {{ s.name }}
+                <a class="name-link" [routerLink]="['/spendings', s.id]">{{ s.name }}</a>
                 @if (isForeign(s)) {
                   <span class="fx-note" [title]="plnTitle(s)">
                     ({{ s.amount | currency: s.currency! : 'symbol-narrow' : '1.2-2' : 'pl' }}

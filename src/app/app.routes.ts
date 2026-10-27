@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { Spendings } from './spendings/spendings';
+import { SpendingDetails } from './spending-details/spending-details';
 import { MbankEmails } from './mbank-emails/mbank-emails';
 import { CardAuthorizations } from './card-authorizations/card-authorizations';
 import { DictionaryAccounts } from './dictionary-accounts/dictionary-accounts';
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: '', redirectTo: 'spendings', pathMatch: 'full' },
   { path: 'login', component: Login, title: 'Logowanie', canActivate: [guestGuard] },
   { path: 'spendings', component: Spendings, title: 'Transakcje', canActivate: [authGuard] },
+  { path: 'spendings/:id', component: SpendingDetails, title: 'Szczegóły transakcji', canActivate: [authGuard] },
   { path: 'card-authorizations', component: CardAuthorizations, title: 'Autoryzacje kart', canActivate: [authGuard] },
   { path: 'emails', component: MbankEmails, title: 'E-maile mBank', canActivate: [authGuard] },
   { path: 'allegro/emails', component: AllegroEmails, title: 'E-maile Allegro', canActivate: [authGuard] },

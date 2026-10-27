@@ -12,6 +12,56 @@ export interface AnnotationResult {
   rowsUpdated: number;
 }
 
+/** Mirrors SpendingDetailsController.SpendingFullDetails. */
+export interface SpendingFullDetails {
+  id: number;
+  operationId: string;
+  operationDate: string | null;
+  operationTime: string | null;
+  operationType: string | null;
+  name: string | null;
+  /** true when mBank truncated the title in the e-mail (contains "...") */
+  nameTruncated: boolean;
+  details: string | null;
+  srcAccount: string | null;
+  dstAccount: string | null;
+  amount: number;
+  currency: string | null;
+  amountPln: number | null;
+  fxRate: number | null;
+  fxRateDate: string | null;
+  amountLeft: string | null;
+  amountLeftCurrency: string | null;
+  createdAt: string | null;
+  category: string | null;
+  note: string | null;
+  accountKey: string | null;
+  accountName: string | null;
+  duplicateOf: number | null;
+  allegroRawEmailId: number | null;
+  refundExpected: boolean;
+  refundSpendingId: number | null;
+  /** dictionary_category_mapping key matching the name exactly */
+  mappingKey: string | null;
+  mappingCategory: string | null;
+  email: { id: number; subject: string | null; emailDate: string | null; status: string | null } | null;
+  statementOperation: {
+    id: number;
+    operationDate: string | null;
+    title: string | null;
+    rawDescription: string | null;
+    operationType: string | null;
+    accountName: string | null;
+    srcAccountFull: string | null;
+    dstAccountFull: string | null;
+    mbankCategory: string | null;
+    amount: number;
+    currency: string | null;
+    reconciliationStatus: string | null;
+    matchType: string | null;
+  } | null;
+}
+
 /** Mirrors the refund endpoints' RefundState from the WebApi. */
 export interface RefundState {
   spendingId: number;
@@ -33,6 +83,11 @@ export class SpendingService {
 
   getAll(): Observable<Spending[]> {
     return this.http.get<Spending[]>(this.baseUrl);
+  }
+
+  /** Full details of one transaction (all columns, source e-mail, linked statement operation with full title). */
+  getDetails(id: number): Observable<SpendingFullDetails> {
+    return this.http.get<SpendingFullDetails>(`${this.baseUrl}/${id}`);
   }
 
   /** Category names known to the system (dictionary_category), for inline-edit suggestions. */

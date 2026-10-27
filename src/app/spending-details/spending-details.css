@@ -1,0 +1,112 @@
+.sd {
+  padding: 16px 24px;
+  max-width: 1200px;
+}
+
+.sd__header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.sd__back {
+  text-decoration: none;
+}
+
+.sd__card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.sd__card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 12px 0 6px;
+}
+
+.sd__card h3:first-child {
+  margin-top: 0;
+}
+
+.sd__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.sd__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  word-break: break-word;
+  user-select: all;
+  flex: 1;
+}
+
+.sd__raw {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+  flex: 1;
+}
+
+.sd__warn {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.sd__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.sd__grid .sd__card {
+  margin-bottom: 0;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+dt {
+  color: #64748b;
+}
+
+dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.sd__mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sd__muted {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.sd__mini {
+  padding: 0 6px;
+  font-size: 0.8rem;
+}
+
+.sd__info {
+  color: #64748b;
+}
+
+.sd__error {
+  color: #dc2626;
+}

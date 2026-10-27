@@ -405,3 +405,13 @@ tr.refund-candidate .refund-btn {
   color: #2e7d32;
   font-weight: 600;
 }
+
+/* transaction name links to the details page (full title, statement title) */
+.name-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.name-link:hover {
+  text-decoration: underline;
+}

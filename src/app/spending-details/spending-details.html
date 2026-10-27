@@ -1,0 +1,118 @@
+<section class="sd">
+  <header class="sd__header">
+    <a routerLink="/spendings" class="sd__back">← Transakcje</a>
+    @if (data(); as d) { <h2>Transakcja #{{ d.id }}</h2> }
+  </header>
+
+  @if (loading()) { <p class="sd__info">Ładowanie…</p> }
+  @if (error()) { <p class="sd__error">{{ error() }}</p> }
+
+  @if (data(); as d) {
+    <div class="sd__card">
+      <h3>Tytuł</h3>
+      <div class="sd__title-row">
+        <span class="sd__title">{{ d.name || '—' }}</span>
+        <button type="button" (click)="copy('name', d.name)">{{ copied() === 'name' ? 'Skopiowano ✓' : 'Kopiuj' }}</button>
+      </div>
+      @if (d.nameTruncated) {
+        <p class="sd__warn">
+          mBank skrócił ten tytuł w e-mailu („...”). Przypisywanie kategorii ze słownika działa na tej skróconej wersji.
+          @if (d.statementOperation?.title) { Pełny tytuł z wyciągu jest poniżej. } @else { Pełny tytuł pojawi się po imporcie wyciągu, który obejmuje tę transakcję. }
+        </p>
+      }
+
+      @if (d.statementOperation; as so) {
+        <h3>Pełny tytuł z wyciągu mBank</h3>
+        <div class="sd__title-row">
+          <span class="sd__title">{{ so.title || '—' }}</span>
+          <button type="button" (click)="copy('stmtTitle', so.title)">{{ copied() === 'stmtTitle' ? 'Skopiowano ✓' : 'Kopiuj' }}</button>
+        </div>
+        @if (so.rawDescription && so.rawDescription !== so.title) {
+          <div class="sd__title-row">
+            <span class="sd__raw">{{ so.rawDescription }}</span>
+            <button type="button" (click)="copy('stmtRaw', so.rawDescription)">{{ copied() === 'stmtRaw' ? 'Skopiowano ✓' : 'Kopiuj opis' }}</button>
+          </div>
+        }
+      }
+
+      <h3>Treść powiadomienia (e-mail)</h3>
+      <div class="sd__title-row">
+        <span class="sd__raw">{{ d.details || '—' }}</span>
+        <button type="button" (click)="copy('details', d.details)">{{ copied() === 'details' ? 'Skopiowano ✓' : 'Kopiuj' }}</button>
+      </div>
+    </div>
+
+    <div class="sd__grid">
+      <div class="sd__card">
+        <h3>Operacja</h3>
+        <dl>
+          <dt>Data</dt><dd>{{ d.operationDate }} {{ d.operationTime }}</dd>
+          <dt>Typ</dt><dd>{{ d.operationType || '—' }}</dd>
+          <dt>Kwota</dt><dd>{{ d.amount | number:'1.2-2':'pl' }} {{ d.currency }}</dd>
+          @if (d.currency && d.currency !== 'PLN') {
+            <dt>Kwota PLN</dt>
+            <dd>{{ d.amountPln !== null ? (d.amountPln | number:'1.2-2':'pl') + ' PLN' : '—' }}
+              @if (d.fxRate !== null) { <span class="sd__muted">(kurs {{ d.fxRate }} z {{ d.fxRateDate }})</span> }
+            </dd>
+          }
+          @if (d.amountLeft) { <dt>Saldo po</dt><dd>{{ d.amountLeft }} {{ d.amountLeftCurrency }}</dd> }
+          <dt>Z rachunku</dt>
+          <dd class="sd__mono">{{ d.srcAccount || '—' }}
+            @if (d.srcAccount) { <button type="button" class="sd__mini" (click)="copy('src', d.srcAccount)">{{ copied() === 'src' ? '✓' : '⧉' }}</button> }
+          </dd>
+          <dt>Na rachunek</dt>
+          <dd class="sd__mono">{{ d.dstAccount || '—' }}
+            @if (d.dstAccount) { <button type="button" class="sd__mini" (click)="copy('dst', d.dstAccount)">{{ copied() === 'dst' ? '✓' : '⧉' }}</button> }
+          </dd>
+          <dt>ID operacji</dt><dd class="sd__mono">{{ d.operationId }}</dd>
+          <dt>Dodano</dt><dd>{{ d.createdAt }}</dd>
+        </dl>
+      </div>
+
+      <div class="sd__card">
+        <h3>Klasyfikacja</h3>
+        <dl>
+          <dt>Kategoria</dt><dd>{{ d.category || '—' }}</dd>
+          <dt>Konto</dt><dd>{{ d.accountName || '—' }} @if (d.accountKey) { <span class="sd__muted sd__mono">({{ d.accountKey }})</span> }</dd>
+          <dt>Notatka</dt><dd>{{ d.note || '—' }}</dd>
+          <dt>Słownik kategorii</dt>
+          <dd>
+            @if (d.mappingKey) { „{{ d.mappingKey }}” → {{ d.mappingCategory }} }
+            @else { <span class="sd__muted">brak wpisu dla tego tytułu</span> }
+          </dd>
+          @if (d.duplicateOf !== null) {
+            <dt>Duplikat</dt><dd><a [routerLink]="['/spendings', d.duplicateOf]">#{{ d.duplicateOf }}</a></dd>
+          }
+          @if (d.refundExpected || d.refundSpendingId !== null) {
+            <dt>Zwrot</dt>
+            <dd>
+              @if (d.refundSpendingId !== null) { <a [routerLink]="['/spendings', d.refundSpendingId]">#{{ d.refundSpendingId }}</a> }
+              @else { oczekiwany }
+            </dd>
+          }
+          @if (d.allegroRawEmailId !== null) { <dt>Allegro</dt><dd>e-mail #{{ d.allegroRawEmailId }}</dd> }
+        </dl>
+      </div>
+
+      <div class="sd__card">
+        <h3>Źródła</h3>
+        <dl>
+          <dt>E-mail mBank</dt>
+          <dd>
+            @if (d.email; as e) { #{{ e.id }} · {{ e.emailDate }} <div class="sd__muted">{{ e.subject }}</div> }
+            @else { <span class="sd__muted">brak (transakcja z wyciągu)</span> }
+          </dd>
+          <dt>Wyciąg mBank</dt>
+          <dd>
+            @if (d.statementOperation; as so) {
+              operacja #{{ so.id }} · {{ so.operationDate }}
+              <div class="sd__muted">{{ so.accountName }} · {{ so.operationType }} · kat. mBank: {{ so.mbankCategory || '—' }}</div>
+              <div class="sd__muted">{{ so.reconciliationStatus }}{{ so.matchType ? ' / ' + so.matchType : '' }}</div>
+              @if (so.dstAccountFull) { <div class="sd__mono sd__muted">odbiorca: {{ so.dstAccountFull }}</div> }
+            } @else { <span class="sd__muted">nie połączono z wyciągiem</span> }
+          </dd>
+        </dl>
+      </div>
+    </div>
+  }
+</section>
