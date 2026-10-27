@@ -184,6 +184,10 @@ export class Spendings implements OnInit {
     if (!expense || expense.id === refund.id) return;
     this.refundRequest(expense.id, this.spendingService.linkRefund(expense.id, refund.id), (state) => {
       this.applyRefundState(state);
+      // the API copies the expense's category to the refund row - mirror it locally
+      if (expense.category) {
+        this.spendings.update((rows) => rows.map((r) => (r.id === refund.id ? { ...r, category: expense.category } : r)));
+      }
       this.linkingFor.set(null);
     });
   }
