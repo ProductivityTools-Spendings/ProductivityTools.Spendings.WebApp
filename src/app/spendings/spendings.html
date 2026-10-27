@@ -3,7 +3,12 @@
     <h2>Transakcje</h2>
     <div class="spendings__actions">
       <span class="spendings__count">
-        {{ visibleSpendings().length }} pozycji
+        @if (hasFilters()) {
+          {{ filteredSpendings().length }} z {{ visibleSpendings().length }} pozycji ·
+          <button type="button" class="link" (click)="clearFilters()">wyczyść filtry</button>
+        } @else {
+          {{ visibleSpendings().length }} pozycji
+        }
         @if (duplicateCount() > 0) {
           · <button type="button" class="link" (click)="toggleDuplicates()">
             {{ hideDuplicates() ? 'pokaż' : 'ukryj' }} {{ duplicateCount() }} dupl.
@@ -63,9 +68,56 @@
             <th>Zwrot</th>
             <th>Notatka</th>
           </tr>
+          <tr class="spendings__filters">
+            <th><input class="flt flt--xs" [ngModel]="filters().id" (ngModelChange)="setFilter('id', $event)" placeholder="Id" /></th>
+            <th><input class="flt flt--sm" [ngModel]="filters().date" (ngModelChange)="setFilter('date', $event)" placeholder="np. 2026-10" title="Fragment daty, np. 2026-10 dla października" /></th>
+            <th><input class="flt flt--xs" [ngModel]="filters().time" (ngModelChange)="setFilter('time', $event)" placeholder="hh:mm" /></th>
+            <th>
+              <select class="flt" [ngModel]="filters().type" (ngModelChange)="setFilter('type', $event)">
+                <option value="">wszystkie</option>
+                @for (t of typeOptions(); track t) { <option [value]="t">{{ t }}</option> }
+              </select>
+            </th>
+            <th><input class="flt" [ngModel]="filters().name" (ngModelChange)="setFilter('name', $event)" placeholder="Szukaj w nazwie i treści" /></th>
+            <th><input class="flt flt--sm num" [ngModel]="filters().amount" (ngModelChange)="setFilter('amount', $event)" placeholder="np. <-100" title="Kwota PLN: 12,99 · >100 · <-50 · >=10 · -100..-50" /></th>
+            <th>
+              <select class="flt" [ngModel]="filters().account" (ngModelChange)="setFilter('account', $event)">
+                <option value="">wszystkie</option>
+                <option value="__none__">(brak)</option>
+                @for (a of accountOptions(); track a) { <option [value]="a">{{ a }}</option> }
+              </select>
+            </th>
+            <th>
+              <select class="flt" [ngModel]="filters().category" (ngModelChange)="setFilter('category', $event)">
+                <option value="">wszystkie</option>
+                <option value="__none__">(brak)</option>
+                @for (c of categoryFilterOptions(); track c) { <option [value]="c">{{ c }}</option> }
+              </select>
+            </th>
+            <th>
+              <select class="flt" [ngModel]="filters().allegro" (ngModelChange)="setFilter('allegro', $event)">
+                <option value="">wszystkie</option>
+                <option value="yes">tak</option>
+                <option value="no">nie</option>
+              </select>
+            </th>
+            <th>
+              <select class="flt" [ngModel]="filters().refund" (ngModelChange)="setFilter('refund', $event)">
+                <option value="">wszystkie</option>
+                <option value="expected">do zwrotu</option>
+                <option value="linked">zwrot połączony</option>
+                <option value="refund">to jest zwrot</option>
+                <option value="none">bez zwrotu</option>
+              </select>
+            </th>
+            <th><input class="flt" [ngModel]="filters().note" (ngModelChange)="setFilter('note', $event)" placeholder="Notatka" /></th>
+          </tr>
         </thead>
         <tbody>
-          @for (s of visibleSpendings(); track s.id) {
+          @if (filteredSpendings().length === 0) {
+            <tr><td colspan="11" class="spendings__no-match">Brak transakcji pasujących do filtrów.</td></tr>
+          }
+          @for (s of filteredSpendings(); track s.id) {
             <tr [id]="'spending-' + s.id" [class.negative]="s.amount < 0" [class.positive]="s.amount > 0"
                 [class.duplicate]="s.duplicateOf !== null"
                 [class.primary]="!hideDuplicates() && isPrimary(s)"

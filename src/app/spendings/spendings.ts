@@ -248,6 +248,45 @@ export class Spendings implements OnInit {
   protected readonly visibleSpendings = computed(() =>
     this.hideDuplicates() ? this.spendings().filter((s) => s.duplicateOf === null) : this.spendings(),
   );
+
+  // ---- column filters ----
+  /** Per-column filter values (empty = no filter). */
+  protected readonly filters = signal<ColumnFilters>({ ...EMPTY_FILTERS });
+  protected readonly hasFilters = computed(() => Object.values(this.filters()).some((v) => v !== ''));
+
+  /** Distinct values for the select filters, computed from the loaded rows. */
+  protected readonly typeOptions = computed(() => distinct(this.visibleSpendings().map((s) => s.operationType)));
+  protected readonly accountOptions = computed(() => distinct(this.visibleSpendings().map((s) => s.account)));
+  protected readonly categoryFilterOptions = computed(() => distinct(this.visibleSpendings().map((s) => s.category)));
+
+  /** Rows shown in the table: duplicates toggle + column filters. */
+  protected readonly filteredSpendings = computed(() => {
+    const f = this.filters();
+    const rows = this.visibleSpendings();
+    if (!Object.values(f).some((v) => v !== '')) return rows;
+    const amountMatcher = parseAmountFilter(f.amount);
+    return rows.filter((s) =>
+      contains(String(s.id), f.id) &&
+      contains(s.operationDate, f.date) &&
+      contains(s.operationTime, f.time) &&
+      equalsOrEmpty(s.operationType, f.type) &&
+      (contains(s.name, f.name) || (f.name !== '' && contains(s.details, f.name))) &&
+      amountMatcher(s.amountPln ?? s.amount) &&
+      equalsOrEmpty(s.account, f.account) &&
+      equalsOrEmpty(s.category, f.category) &&
+      matchesAllegro(s, f.allegro) &&
+      matchesRefund(s, f.refund) &&
+      contains(s.note, f.note),
+    );
+  });
+
+  protected setFilter(key: keyof ColumnFilters, value: string): void {
+    this.filters.update((f) => ({ ...f, [key]: value ?? '' }));
+  }
+
+  protected clearFilters(): void {
+    this.filters.set({ ...EMPTY_FILTERS });
+  }
   protected readonly duplicateCount = computed(() => this.spendings().filter((s) => s.duplicateOf !== null).length);
   /** Ids of canonical rows that have at least one duplicate pointing at them. */
   protected readonly primaryIds = computed(
@@ -395,5 +434,89 @@ export class Spendings implements OnInit {
 
   private describeFill(what: string, missingLabel: string, r: FillResult): string {
     return `Uzupełniono ${what}: ${r.updated}. Nadal ${missingLabel}: ${r.remainingEmpty}.`;
+  }
+}
+
+/** Filter value per table column. Select filters use '' = all, NONE = empty value. */
+interface ColumnFilters {
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  name: string;
+  amount: string;
+  account: string;
+  category: string;
+  allegro: string;
+  refund: string;
+  note: string;
+}
+
+const EMPTY_FILTERS: ColumnFilters = {
+  id: '', date: '', time: '', type: '', name: '', amount: '',
+  account: '', category: '', allegro: '', refund: '', note: '',
+};
+
+/** Select-filter value meaning "no value" (e.g. spendings without a category). */
+const NONE = '__none__';
+
+function distinct(values: (string | null)[]): string[] {
+  return [...new Set(values.filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b, 'pl'));
+}
+
+/** Case-insensitive "contains"; an empty filter matches everything. */
+function contains(value: string | null | undefined, filter: string): boolean {
+  const f = filter.trim().toLowerCase();
+  if (!f) return true;
+  return (value ?? '').toLowerCase().includes(f);
+}
+
+function equalsOrEmpty(value: string | null | undefined, filter: string): boolean {
+  if (!filter) return true;
+  if (filter === NONE) return !value;
+  return value === filter;
+}
+
+/**
+ * Amount filter syntax: "123" (equal or equal absolute value, also "123,45"), ">100", "<-50", ">=10", "<=10", "10..50" (range),
+ * "-" prefix works for expenses (amounts are negative). Invalid input matches everything.
+ */
+function parseAmountFilter(raw: string): (amount: number | null) => boolean {
+  const f = raw.trim().replace(/\s/g, '').replace(/,/g, '.');
+  if (!f) return () => true;
+  const range = f.match(/^(-?\d+(?:\.\d+)?)\.\.(-?\d+(?:\.\d+)?)$/);
+  if (range) {
+    const a = Number(range[1]);
+    const b = Number(range[2]);
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    return (x) => x !== null && x >= lo && x <= hi;
+  }
+  const cmp = f.match(/^(>=|<=|>|<|=)?(-?\d+(?:\.\d+)?)$/);
+  if (!cmp) return () => true;
+  const n = Number(cmp[2]);
+  switch (cmp[1]) {
+    case '>': return (x) => x !== null && x > n;
+    case '<': return (x) => x !== null && x < n;
+    case '>=': return (x) => x !== null && x >= n;
+    case '<=': return (x) => x !== null && x <= n;
+    // a plain positive number also finds the expense with the same absolute value (12,99 -> -12,99)
+    default: return (x) => x !== null && (Math.abs(x - n) < 0.005 || (n > 0 && Math.abs(Math.abs(x) - n) < 0.005));
+  }
+}
+
+function matchesAllegro(s: Spending, filter: string): boolean {
+  if (filter === 'yes') return s.allegroRawEmailId !== null;
+  if (filter === 'no') return s.allegroRawEmailId === null;
+  return true;
+}
+
+function matchesRefund(s: Spending, filter: string): boolean {
+  switch (filter) {
+    case 'expected': return s.refundExpected && s.refundSpendingId === null;
+    case 'linked': return s.refundSpendingId !== null;
+    case 'refund': return s.refundOfSpendingId !== null;
+    case 'none': return !s.refundExpected && s.refundSpendingId === null && s.refundOfSpendingId === null;
+    default: return true;
   }
 }
