@@ -233,6 +233,14 @@
                 + Dodaj do wydatków
               </button>
               <button
+                class="btn-sm btn-primary"
+                [disabled]="actionInProgress"
+                (click)="openLinkPicker(row)"
+                title="Połącz ręcznie z istniejącą transakcją (np. wydatek dodany ręcznie lub z innym opisem)"
+              >
+                Połącz z…
+              </button>
+              <button
                 class="btn-sm btn-ghost"
                 [disabled]="actionInProgress"
                 (click)="row.id && setIgnored([row.id], true)"
@@ -296,6 +304,14 @@
                 title="To osobna transakcja na tę samą kwotę — utwórz nowy wydatek"
               >
                 + Dodaj jako nowy
+              </button>
+              <button
+                class="btn-sm btn-ghost"
+                [disabled]="actionInProgress"
+                (click)="openLinkPicker(item.statementRow)"
+                title="Wybierz ręcznie inną transakcję"
+              >
+                Połącz z innym…
               </button>
               <button
                 class="btn-sm btn-ghost"
@@ -369,6 +385,7 @@
             <th>Wyciąg mBank</th>
             <th>Baza danych (spendings z e-maila)</th>
             <th class="right">Kwota</th>
+            <th class="right">Akcje</th>
           </tr>
         </thead>
         <tbody>
@@ -387,9 +404,19 @@
               </div>
             </td>
             <td class="right amount-matched">{{ item.statementRow.amount | number:'1.2-2' }} {{ item.statementRow.currency }}</td>
+            <td class="right actions-cell">
+              <button
+                class="btn-sm btn-ghost"
+                [disabled]="actionInProgress"
+                (click)="unlink(item.statementRow.id)"
+                title="Usuń połączenie – operacja wróci do brakujących"
+              >
+                Rozłącz
+              </button>
+            </td>
           </tr>
           <tr *ngIf="filteredMatchedRows.length === 0">
-            <td colspan="5" class="empty-state">Brak uzgodnionych operacji dla wybranych filtrów.</td>
+            <td colspan="6" class="empty-state">Brak uzgodnionych operacji dla wybranych filtrów.</td>
           </tr>
         </tbody>
       </table>
@@ -470,6 +497,82 @@
           </tr>
         </tbody>
       </table>
+    </div>
+    <!-- Manual link picker -->
+    <div class="link-overlay" *ngIf="linkTarget" (click)="closeLinkPicker()">
+      <div class="link-dialog" (click)="$event.stopPropagation()">
+        <div class="link-dialog-header">
+          <h3>Połącz operację z wyciągu z transakcją</h3>
+          <button class="btn-sm btn-ghost" (click)="closeLinkPicker()">✕</button>
+        </div>
+        <div class="link-target">
+          <span class="mono">#{{ linkTarget.id }} · {{ linkTarget.operationDate }}</span>
+          <strong>{{ linkTarget.title }}</strong>
+          <span class="amount-missing">{{ linkTarget.amount | number:'1.2-2' }} {{ linkTarget.currency }}</span>
+          <span class="muted small">{{ linkTarget.accountName }}</span>
+        </div>
+        <div class="link-filters">
+          <label>
+            Zakres dat:
+            <select [(ngModel)]="linkDays" (ngModelChange)="loadLinkCandidates()">
+              <option [ngValue]="3">±3 dni</option>
+              <option [ngValue]="7">±7 dni</option>
+              <option [ngValue]="14">±14 dni</option>
+              <option [ngValue]="30">±30 dni</option>
+              <option [ngValue]="60">±60 dni</option>
+            </select>
+          </label>
+          <input
+            type="text"
+            placeholder="Szukaj po nazwie, kwocie, kategorii lub ID (±180 dni)…"
+            [(ngModel)]="linkQuery"
+            (keyup.enter)="loadLinkCandidates()"
+          />
+          <button class="btn-sm btn-primary" (click)="loadLinkCandidates()">Szukaj</button>
+        </div>
+        <div class="link-results">
+          <p class="muted" *ngIf="linkLoading">Ładowanie…</p>
+          <p class="muted" *ngIf="!linkLoading && linkCandidates.length === 0">
+            Brak transakcji do połączenia. Zwiększ zakres dat albo wyszukaj po nazwie lub kwocie.
+          </p>
+          <table class="diff-table" *ngIf="!linkLoading && linkCandidates.length > 0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Nazwa</th>
+                <th>Konto / Kategoria</th>
+                <th class="right">Kwota</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of linkCandidates" [class.amount-equal]="c.amount === linkTarget.amount">
+                <td class="mono">#{{ c.id }}</td>
+                <td class="mono">{{ c.effectiveDate }}</td>
+                <td>
+                  <div class="main-title">{{ c.title }}</div>
+                  <div class="raw-desc">{{ c.operationType }}{{ c.rawEmailId ? '' : ' · bez e-maila' }}</div>
+                </td>
+                <td>
+                  <div>{{ c.accountKey || '—' }}</div>
+                  <div class="muted small">{{ c.categoryName || 'Brak kategorii' }}</div>
+                </td>
+                <td class="right">{{ c.amount | number:'1.2-2' }} {{ c.currency }}</td>
+                <td class="right">
+                  <button
+                    class="btn-sm btn-primary"
+                    [disabled]="actionInProgress"
+                    (click)="linkTarget.id != null && linkCandidate(linkTarget.id, c.id)"
+                  >
+                    Połącz
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </ng-container>
 </div>

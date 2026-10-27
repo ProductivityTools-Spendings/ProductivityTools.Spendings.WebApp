@@ -118,6 +118,13 @@ export class StatementImport implements OnInit {
   chosenCategories: Record<number, string> = {};
   bulkCategory = '';
 
+  /** Statement operation for which the manual link picker is open. */
+  linkTarget: MBankStatementRowDto | null = null;
+  linkCandidates: (DbSpendingCandidateDto & { rawEmailId?: number | null })[] = [];
+  linkDays = 7;
+  linkQuery = '';
+  linkLoading = false;
+
   ngOnInit(): void {
     this.loadReconciliationView();
     this.spendingService.getCategories().subscribe({
@@ -405,6 +412,63 @@ export class StatementImport implements OnInit {
     });
   }
 
+  openLinkPicker(row: MBankStatementRowDto): void {
+    if (row.id == null) return;
+    this.linkTarget = row;
+    this.linkQuery = '';
+    this.linkCandidates = [];
+    this.loadLinkCandidates();
+  }
+
+  closeLinkPicker(): void {
+    this.linkTarget = null;
+    this.linkCandidates = [];
+    this.cdr.detectChanges();
+  }
+
+  loadLinkCandidates(): void {
+    const id = this.linkTarget?.id;
+    if (id == null) return;
+    this.linkLoading = true;
+    this.cdr.detectChanges();
+    const params: Record<string, string> = { days: String(this.linkDays) };
+    if (this.linkQuery.trim()) params['q'] = this.linkQuery.trim();
+    this.http.get<any[]>(`${this.apiUrl}/api/mbank-statements/${id}/link-candidates`, { params }).subscribe({
+      next: (rows) => {
+        this.linkCandidates = rows.map((c) => ({ ...c, amount: Number(c.amount) }));
+        this.linkLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.linkLoading = false;
+        this.error = err?.error?.message || err?.message || 'Błąd podczas pobierania transakcji do połączenia.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  unlink(statementOperationId: number | null): void {
+    if (statementOperationId == null) return;
+    if (!confirm(`Rozłączyć operację z wyciągu #${statementOperationId} od transakcji? Wróci do listy brakujących.`)) return;
+    this.actionInProgress = true;
+    this.error = null;
+    this.successMessage = null;
+    this.cdr.detectChanges();
+    this.http.post(`${this.apiUrl}/api/mbank-statements/unlink`, { statementOperationId }).subscribe({
+      next: () => {
+        this.actionInProgress = false;
+        this.successMessage = `Rozłączono operację z wyciągu #${statementOperationId}.`;
+        this.cdr.detectChanges();
+        this.loadReconciliationView();
+      },
+      error: (err) => {
+        this.actionInProgress = false;
+        this.error = err?.error?.message || err?.message || 'Błąd podczas rozłączania.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   linkCandidate(statementOperationId: number | null, spendingId: number): void {
     if (statementOperationId == null) return;
     this.actionInProgress = true;
@@ -418,6 +482,8 @@ export class StatementImport implements OnInit {
     }).subscribe({
       next: () => {
         this.actionInProgress = false;
+        this.linkTarget = null;
+        this.linkCandidates = [];
         this.successMessage = `Połączono operację z wyciągu (#${statementOperationId}) z istniejącym wydatkiem (#${spendingId}).`;
         this.cdr.detectChanges();
         this.loadReconciliationView();
