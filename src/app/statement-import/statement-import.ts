@@ -123,7 +123,8 @@ export class StatementImport implements OnInit {
 
   /** Statement operation for which the manual link picker is open. */
   linkTarget: MBankStatementRowDto | null = null;
-  linkCandidates: (DbSpendingCandidateDto & { rawEmailId?: number | null })[] = [];
+  linkCandidates: (DbSpendingCandidateDto & { rawEmailId?: number | null; unavailableReason?: string | null })[] = [];
+  private linkSearchTimer: ReturnType<typeof setTimeout> | null = null;
   linkDays = 7;
   linkQuery = '';
   linkLoading = false;
@@ -492,7 +493,18 @@ export class StatementImport implements OnInit {
     this.cdr.detectChanges();
   }
 
+  /** Live search: reload candidates 300 ms after the user stops typing. */
+  onLinkQueryChange(value: string): void {
+    this.linkQuery = value ?? '';
+    if (this.linkSearchTimer) clearTimeout(this.linkSearchTimer);
+    this.linkSearchTimer = setTimeout(() => this.loadLinkCandidates(), 300);
+  }
+
   loadLinkCandidates(): void {
+    if (this.linkSearchTimer) {
+      clearTimeout(this.linkSearchTimer);
+      this.linkSearchTimer = null;
+    }
     const id = this.linkTarget?.id;
     if (id == null) return;
     this.linkLoading = true;
@@ -501,7 +513,7 @@ export class StatementImport implements OnInit {
     if (this.linkQuery.trim()) params['q'] = this.linkQuery.trim();
     this.http.get<any[]>(`${this.apiUrl}/api/mbank-statements/${id}/link-candidates`, { params }).subscribe({
       next: (rows) => {
-        this.linkCandidates = rows.map((c) => ({ ...c, amount: Number(c.amount) }));
+        this.linkCandidates = rows.map((c) => ({ ...c, amount: c.amount == null ? c.amount : Number(c.amount) }));
         this.linkLoading = false;
         this.cdr.detectChanges();
       },

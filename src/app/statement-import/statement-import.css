@@ -563,3 +563,14 @@
 .link-results tr.amount-equal {
   background: #f0fdf4;
 }
+
+.link-results tr.link-unavailable td {
+  color: #94a3b8;
+}
+
+.unavailable-reason {
+  display: inline-block;
+  max-width: 220px;
+  white-space: normal;
+  text-align: right;
+}

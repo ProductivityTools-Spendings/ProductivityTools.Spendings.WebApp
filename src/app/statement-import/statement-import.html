@@ -562,8 +562,9 @@
           </label>
           <input
             type="text"
-            placeholder="Szukaj po nazwie, kwocie, kategorii lub ID (±180 dni)…"
-            [(ngModel)]="linkQuery"
+            placeholder="Szukaj po nazwie, kwocie (np. 521,14), kategorii lub ID (#5279) – ±180 dni…"
+            [ngModel]="linkQuery"
+            (ngModelChange)="onLinkQueryChange($event)"
             (keyup.enter)="loadLinkCandidates()"
           />
           <button class="btn-sm btn-primary" (click)="loadLinkCandidates()">Szukaj</button>
@@ -585,7 +586,9 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let c of linkCandidates" [class.amount-equal]="c.amount === linkTarget.amount">
+              <tr *ngFor="let c of linkCandidates"
+                  [class.amount-equal]="!c.unavailableReason && c.amount === linkTarget.amount"
+                  [class.link-unavailable]="!!c.unavailableReason">
                 <td class="mono">#{{ c.id }}</td>
                 <td class="mono">{{ c.effectiveDate }}</td>
                 <td>
@@ -599,12 +602,14 @@
                 <td class="right">{{ c.amount | number:'1.2-2' }} {{ c.currency }}</td>
                 <td class="right">
                   <button
+                    *ngIf="!c.unavailableReason"
                     class="btn-sm btn-primary"
                     [disabled]="actionInProgress"
                     (click)="linkTarget.id != null && linkCandidate(linkTarget.id, c.id)"
                   >
                     Połącz
                   </button>
+                  <span *ngIf="c.unavailableReason" class="muted small unavailable-reason">{{ c.unavailableReason }}</span>
                 </td>
               </tr>
             </tbody>
