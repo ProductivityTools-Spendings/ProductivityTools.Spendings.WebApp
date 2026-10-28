@@ -172,7 +172,13 @@
       <h3 class="dict__panel-title">Kategorie</h3>
       <input class="dict__filter" name="groupFilter" [(ngModel)]="groupFilter" placeholder="Filtruj po kategorii lub grupie…" autocomplete="off" />
       @if (!groupsLoading()) {
-        <p class="dict__summary">{{ ungroupedCount() }} z {{ groupCategories().length }} kategorii bez grupy</p>
+        <p class="dict__summary">
+          {{ ungroupedCount() }} z {{ groupCategories().length }} kategorii bez grupy
+          · <button type="button" class="link" (click)="randomizeColors(false)" [disabled]="randomizing()"
+                    title="Nadaj losowe, wyraźnie różne kolory wszystkim kategoriom">{{ randomizing() ? 'Losowanie…' : 'Losuj kolory' }}</button>
+          · <button type="button" class="link" (click)="randomizeColors(true)" [disabled]="randomizing()"
+                    title="Nadaj losowe kolory tylko kategoriom z kolorem automatycznym">tylko „auto”</button>
+        </p>
       }
       @if (groupsLoading()) {
         <p class="dict__info">Ładowanie…</p>
@@ -204,7 +210,7 @@
                   </select>
                 </td>
                 <td class="dict__cat-color">
-                  <input class="dict__color" type="color" [value]="c.color || '#9e9e9e'" [disabled]="c.saving"
+                  <input class="dict__color" [class.auto]="!c.color" type="color" [value]="c.color || '#9e9e9e'" [disabled]="c.saving"
                          (change)="setCategoryColor(c, $any($event.target).value)"
                          [title]="c.color ? 'Kolor kategorii na wykresach' : 'Kolor automatyczny – kliknij, aby wybrać'" />
                   @if (c.color) {

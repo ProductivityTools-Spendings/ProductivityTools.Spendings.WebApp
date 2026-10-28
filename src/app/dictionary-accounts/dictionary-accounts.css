@@ -282,9 +282,16 @@ input:focus {
   width: 5.5rem;
 }
 
-.dict__table td input.dict__order,
+/* inputs in table cells are width: 100% by default – keep the small ones at their own size */
+.dict__table td input.dict__order {
+  width: 5.5rem;
+}
+
 .dict__table td input.dict__color {
-  width: auto;
+  width: 2.6rem;
+  min-width: 2.6rem;
+  height: 1.8rem;
+  vertical-align: middle;
 }
 
 .dict__group-cell {
@@ -321,7 +328,11 @@ input:focus {
   white-space: nowrap;
 }
 
-.dict__cat-color .dict__color {
-  vertical-align: middle;
+.dict__table td.dict__cat-color input.dict__color {
   margin-right: 0.35rem;
+}
+
+/* category without its own colour: dimmed picker */
+.dict__table td.dict__cat-color input.dict__color.auto {
+  opacity: 0.45;
 }

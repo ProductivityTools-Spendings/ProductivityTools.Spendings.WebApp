@@ -401,6 +401,40 @@ export class DictionaryCategoryMappings implements OnInit {
     });
   }
 
+  protected readonly randomizing = signal(false);
+
+  /**
+   * Gives categories random, clearly different colours (hues spread by the golden angle from a random start,
+   * alternating lightness) and saves them in one request. `onlyAuto` = only categories without their own colour.
+   */
+  protected randomizeColors(onlyAuto: boolean): void {
+    const targets = this.groupCategories().filter((c) => !onlyAuto || !c.color).map((c) => c.name);
+    if (targets.length === 0) {
+      this.status.set('Wszystkie kategorie mają już własny kolor.');
+      return;
+    }
+    if (!onlyAuto && !confirm(`Nadać losowe kolory wszystkim ${targets.length} kategoriom? Obecne kolory zostaną zastąpione.`)) {
+      return;
+    }
+    const colors = randomDistinctColors(targets.length);
+    const payload: Record<string, string> = {};
+    targets.forEach((name, i) => (payload[name] = colors[i]));
+    this.randomizing.set(true);
+    this.error.set(null);
+    this.groupService.setCategoryColors(payload).subscribe({
+      next: (saved) => {
+        const byName = new Map(saved.map((c) => [c.name, c.color ?? null]));
+        this.groupCategories.update((cs) => cs.map((c) => (byName.has(c.name) ? { ...c, color: byName.get(c.name)! } : c)));
+        this.randomizing.set(false);
+        this.status.set(`Nadano losowe kolory ${targets.length} kategoriom.`);
+      },
+      error: (err) => {
+        this.randomizing.set(false);
+        this.error.set(describeError(err, 'Nie udało się zapisać kolorów.'));
+      },
+    });
+  }
+
   /** Saves the category's chart colour (null = back to the automatic palette colour). */
   protected setCategoryColor(c: CategoryRow, color: string | null): void {
     if ((color ?? null) === c.color) return;
@@ -474,4 +508,31 @@ function describeError(err: unknown, fallback: string): string {
     return body?.detail || body?.message || err.message || fallback;
   }
   return fallback;
+}
+
+/** `count` random colours with well separated hues (golden angle) in shuffled order, as "#rrggbb". */
+function randomDistinctColors(count: number): string[] {
+  const start = Math.random() * 360;
+  const colors: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const hue = (start + i * 137.508) % 360;
+    const saturation = 60 + (i % 3) * 8; // 60, 68, 76 %
+    const lightness = i % 2 === 0 ? 45 : 58;
+    colors.push(hslToHex(hue, saturation, lightness));
+  }
+  for (let i = colors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+  return colors;
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const sat = s / 100;
+  const light = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sat * Math.min(light, 1 - light);
+  const f = (n: number) => light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
 }

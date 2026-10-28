@@ -56,6 +56,11 @@ export class DictionaryCategoryGroupService {
     return this.http.get<CategoryWithGroup[]>(`${this.baseUrl}/categories`);
   }
 
+  /** Sets the chart colours of many categories in one request; returns the updated category list. */
+  setCategoryColors(colors: Record<string, string | null>): Observable<CategoryWithGroup[]> {
+    return this.http.put<CategoryWithGroup[]>(`${this.baseUrl}/categories/colors`, { colors });
+  }
+
   /** Sets (or clears, with null) the chart colour of a single category. */
   setCategoryColor(name: string, color: string | null): Observable<CategoryWithGroup> {
     return this.http.put<CategoryWithGroup>(
