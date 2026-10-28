@@ -63,6 +63,29 @@ interface PieGroupSlice {
   categories: string[];
 }
 
+/** One stacked segment of the pivot bar chart (a category or a group in one month). */
+interface PivotBarSegment {
+  key: string;
+  label: string;
+  color: string;
+  value: number;
+  y: number;
+  h: number;
+  /** Group row for group segments (drill-down opens the group); null for categories. */
+  group: GroupRow<PivotRow> | null;
+}
+
+/** One month column of the pivot bar chart. */
+interface PivotBarColumn {
+  month: string;
+  x: number;
+  w: number;
+  total: number;
+  /** y of the top of the spending stack (label position). */
+  topY: number;
+  segments: PivotBarSegment[];
+}
+
 type PivotMode = 'categories' | 'groups';
 
 const PIE_COLORS = [
@@ -380,6 +403,93 @@ export class Reports implements OnInit {
   /** Drill-down for a group row cell (month = null → whole range). */
   protected openGroupDrill(g: GroupRow<PivotRow>, month: string | null): void {
     this.openDrill(null, month, { key: g.group, categories: g.categories.map((r) => r.category) });
+  }
+
+  // --- report 1: bar chart under the pivot (same data as the table) -----------
+  protected readonly barW = 1200;
+  protected readonly barH = 300;
+  protected readonly barPad = { l: 70, r: 16, t: 22, b: 36 };
+
+  /** Series of the bar chart: included categories (categories mode) or groups (groups mode), in table order. */
+  protected readonly pivotBarSeries = computed(() => {
+    if (this.pivotMode() === 'groups' && this.hasGroups()) {
+      return this.pivotGroups()
+        .filter((g) => g.includedCount > 0)
+        .map((g) => ({ key: g.group, label: g.label, color: this.groupColor(g.group), byMonth: g.byMonth, group: g as GroupRow<PivotRow> | null }));
+    }
+    const excluded = this.excluded();
+    return this.pivot()
+      .filter((r) => !excluded.has(r.category))
+      .map((r, i) => ({ key: r.category, label: r.category, color: PIE_COLORS[i % PIE_COLORS.length], byMonth: r.byMonth, group: null }));
+  });
+
+  /** Largest stacked spending (up) and net inflow (down) per month – the chart's value range. */
+  private readonly pivotBarRange = computed(() => {
+    let up = 0;
+    let down = 0;
+    for (const m of this.months()) {
+      let neg = 0;
+      let pos = 0;
+      for (const s of this.pivotBarSeries()) {
+        const v = s.byMonth[m] ?? 0;
+        if (v < 0) neg -= v; else pos += v;
+      }
+      up = Math.max(up, neg);
+      down = Math.max(down, pos);
+    }
+    return { up: Math.max(up, 1), down };
+  });
+
+  protected barY(value: number): number {
+    const { up, down } = this.pivotBarRange();
+    const h = this.barH - this.barPad.t - this.barPad.b;
+    // spending (negative) is drawn upwards from the zero axis, inflows below it
+    return this.barPad.t + ((up + value) / (up + down)) * h;
+  }
+
+  protected readonly barZeroY = computed(() => this.barY(0));
+
+  /** Gridlines labelled with net values (spending negative), like the other charts. */
+  protected readonly barTicks = computed(() => {
+    const { up, down } = this.pivotBarRange();
+    const step = niceStep(up + down);
+    const ticks: { y: number; value: number }[] = [];
+    for (let v = 0; v <= up + 1e-9; v += step) ticks.push({ y: this.barY(-v), value: -v });
+    for (let v = step; v <= down + 1e-9; v += step) ticks.push({ y: this.barY(v), value: v });
+    return ticks;
+  });
+
+  protected readonly pivotBars = computed<PivotBarColumn[]>(() => {
+    const months = this.months();
+    const n = Math.max(months.length, 1);
+    const slot = (this.barW - this.barPad.l - this.barPad.r) / n;
+    const w = Math.min(60, slot * 0.7);
+    const zero = this.barY(0);
+    return months.map((m, i) => {
+      let upTop = zero;
+      let downBottom = zero;
+      let total = 0;
+      const segments: PivotBarSegment[] = [];
+      for (const s of this.pivotBarSeries()) {
+        const v = s.byMonth[m] ?? 0;
+        if (!v) continue;
+        total += v;
+        const h = Math.abs(this.barY(v) - zero);
+        if (v < 0) {
+          upTop -= h;
+          segments.push({ key: s.key, label: s.label, color: s.color, value: v, y: upTop, h, group: s.group });
+        } else {
+          segments.push({ key: s.key, label: s.label, color: s.color, value: v, y: downBottom, h, group: s.group });
+          downBottom += h;
+        }
+      }
+      return { month: m, x: this.barPad.l + i * slot + (slot - w) / 2, w, total, topY: upTop, segments };
+    });
+  });
+
+  protected openBarDrill(seg: PivotBarSegment, month: string): void {
+    if (seg.group) this.openGroupDrill(seg.group, month);
+    else this.openDrill(seg.key, month);
   }
 
   // --- pie: category share -------------------------------------------------

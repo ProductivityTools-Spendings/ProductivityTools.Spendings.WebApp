@@ -178,6 +178,32 @@
         </tfoot>
       </table>
     </div>
+    @if (months().length > 0 && pivotBarSeries().length > 0) {
+      <svg class="mat-chart pivot-chart" [attr.viewBox]="'0 0 ' + barW + ' ' + barH" role="img" aria-label="Wydatki wg kategorii – wykres słupkowy">
+        @for (t of barTicks(); track t.value) {
+          <line [attr.x1]="barPad.l" [attr.x2]="barW - barPad.r" [attr.y1]="t.y" [attr.y2]="t.y" class="grid" [class.zero]="t.value === 0" />
+          <text [attr.x]="barPad.l - 8" [attr.y]="t.y + 4" class="ylabel">{{ t.value | number: '1.0-0' : 'pl' }}</text>
+        }
+        @for (col of pivotBars(); track col.month) {
+          @for (seg of col.segments; track seg.key) {
+            <rect class="seg clickable" [attr.x]="col.x" [attr.width]="col.w" [attr.y]="seg.y" [attr.height]="seg.h" [attr.fill]="seg.color"
+                  [class.selected]="(seg.group ? drill()?.group === seg.key : drill()?.category === seg.key) && drill()?.from === col.month && drill()?.to === col.month"
+                  (click)="openBarDrill(seg, col.month)">
+              <title>{{ seg.label }} · {{ col.month }}: {{ seg.value | number: '1.0-0' : 'pl' }} zł</title>
+            </rect>
+          }
+          @if (col.total) {
+            <text class="bar-total" [attr.x]="col.x + col.w / 2" [attr.y]="col.topY - 4" text-anchor="middle">{{ col.total | number: '1.0-0' : 'pl' }}</text>
+          }
+          <text class="xlabel" [attr.x]="col.x + col.w / 2" [attr.y]="barH - 12" text-anchor="middle">{{ col.month }}</text>
+        }
+      </svg>
+      <div class="pivot-legend">
+        @for (s of pivotBarSeries(); track s.key) {
+          <span class="pivot-legend__item"><span class="dot" [style.background]="s.color"></span>{{ s.label }}</span>
+        }
+      </div>
+    }
     <p class="muted">Saldo netto kategorii w PLN: wydatki ze znakiem minus, wpływy/zwroty z plusem (na zielono). Intensywność tła = wielkość wydatku. Odznaczone kategorie (szare) nie wchodzą do wiersza „Razem”; wybór jest zapamiętywany. Kliknij komórkę, aby zobaczyć transakcje.@if (hasGroups()) { Filtr grup nad tabelą ogranicza kategorie we wszystkich sekcjach; w trybie „Grupy” wiersz grupy sumuje jej zaznaczone kategorie (▸ rozwija listę). }</p>
 
     @if (drill(); as d) {
@@ -342,8 +368,8 @@
             <path [attr.d]="s.path" [attr.fill]="s.color" class="pie__slice clickable" (click)="openDailyDrill(s.category, dailyElapsed())">
               <title>{{ s.tip }}</title>
             </path>
-            @if (s.pct >= 4) {
-              <text class="pie__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.pct | number: '1.0-0' : 'pl' }}%</text>
+            @if (s.pct >= 5) {
+              <text class="pie__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.value | number: '1.0-0' : 'pl' }}</text>
             }
           }
           <text class="pie__center" [attr.x]="dailyPieC" [attr.y]="dailyPieC - 4">{{ dailyPieTotal() | number: '1.0-0' : 'pl' }}</text>
