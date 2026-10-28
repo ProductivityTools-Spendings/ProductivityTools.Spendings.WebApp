@@ -26,6 +26,8 @@ export interface CategoryWithGroup {
   name: string;
   groupId: number | null;
   groupName: string | null;
+  /** Chart colour ("#rrggbb") or null = automatic palette colour */
+  color: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +54,14 @@ export class DictionaryCategoryGroupService {
   /** All dictionary categories with their current group. */
   getCategories(): Observable<CategoryWithGroup[]> {
     return this.http.get<CategoryWithGroup[]>(`${this.baseUrl}/categories`);
+  }
+
+  /** Sets (or clears, with null) the chart colour of a single category. */
+  setCategoryColor(name: string, color: string | null): Observable<CategoryWithGroup> {
+    return this.http.put<CategoryWithGroup>(
+      `${this.baseUrl}/categories/${encodeURIComponent(name)}/color`,
+      { color },
+    );
   }
 
   /** Assigns (or clears, with null) the group of a single category. */

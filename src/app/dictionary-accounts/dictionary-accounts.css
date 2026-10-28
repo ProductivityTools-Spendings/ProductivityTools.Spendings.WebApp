@@ -315,3 +315,13 @@ input:focus {
 .dict__table tr.saving {
   opacity: 0.6;
 }
+
+/* category chart colour cell (Słownik kategorii → Grupy kategorii) */
+.dict__cat-color {
+  white-space: nowrap;
+}
+
+.dict__cat-color .dict__color {
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}

@@ -228,6 +228,14 @@ export class Reports implements OnInit {
     this.selectedGroups.set(new Set());
   }
 
+  /** User-defined category colours (Słownik kategorii → Grupy kategorii); used by every chart. */
+  protected readonly categoryColorMap = computed(() => new Map(Object.entries(this.hygiene()?.categoryColors ?? {})));
+
+  /** Colour of a category: the user-defined one, otherwise the palette colour at `index`. */
+  protected categoryColor(category: string, index: number): string {
+    return this.categoryColorMap().get(category) ?? PIE_COLORS[index % PIE_COLORS.length];
+  }
+
   protected groupColor(key: string): string {
     return groupColor(key, this.groups());
   }
@@ -411,7 +419,7 @@ export class Reports implements OnInit {
   protected readonly barPad = { l: 70, r: 16, t: 22, b: 36 };
 
   /** Stable colour per pivot category (by table order of all categories, so toggling does not recolour). */
-  protected readonly pivotColors = computed(() => new Map(this.pivot().map((r, i) => [r.category, PIE_COLORS[i % PIE_COLORS.length]])));
+  protected readonly pivotColors = computed(() => new Map(this.pivot().map((r, i) => [r.category, this.categoryColor(r.category, i)])));
 
   /** "wszystkie" / "żadna" for the pivot category chips (same selection as the table checkboxes). */
   protected pivotSetAll(include: boolean): void {
@@ -542,7 +550,7 @@ export class Reports implements OnInit {
         groupLabel: groupLabel(group),
         value,
         pct: frac * 100,
-        color: PIE_COLORS[i % PIE_COLORS.length],
+        color: this.categoryColor(r.category, i),
         path: this.arcPath(start, end, R, ir),
         labelX: this.pieC + lr * Math.cos(mid),
         labelY: this.pieC + lr * Math.sin(mid),
@@ -711,7 +719,7 @@ export class Reports implements OnInit {
     for (const c of mergeCategories(this.dailyCur(), this.dailyPrev())) if (!this.isVisible(c)) out.add(c);
     return out;
   });
-  protected readonly dailyColors = computed(() => new Map(this.dailyCategories().map((c, i) => [c, PIE_COLORS[i % PIE_COLORS.length]])));
+  protected readonly dailyColors = computed(() => new Map(this.dailyCategories().map((c, i) => [c, this.categoryColor(c, i)])));
   protected readonly dailyIsCurrent = computed(() => this.dailyMonth() === this.currentMonth);
   /** Days drawn as bars: whole month for past months, up to today for the current one. */
   protected readonly dailyElapsed = computed(() => elapsedDays(this.dailyMonth(), new Date()));

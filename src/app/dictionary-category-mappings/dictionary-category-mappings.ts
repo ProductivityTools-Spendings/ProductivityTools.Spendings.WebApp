@@ -40,6 +40,8 @@ interface CategoryRow {
   name: string;
   groupId: number | null;
   groupName: string | null;
+  /** Chart colour ("#rrggbb"); null = automatic palette colour */
+  color: string | null;
   saving: boolean;
 }
 
@@ -399,6 +401,25 @@ export class DictionaryCategoryMappings implements OnInit {
     });
   }
 
+  /** Saves the category's chart colour (null = back to the automatic palette colour). */
+  protected setCategoryColor(c: CategoryRow, color: string | null): void {
+    if ((color ?? null) === c.color) return;
+    this.patchCategory(c.name, { saving: true });
+    this.error.set(null);
+    this.groupService.setCategoryColor(c.name, color).subscribe({
+      next: (saved) => {
+        this.patchCategory(c.name, { color: saved.color ?? null, saving: false });
+        this.status.set(saved.color
+          ? `Ustawiono kolor kategorii „${saved.name}”.`
+          : `Kategoria „${saved.name}” ma znowu kolor automatyczny.`);
+      },
+      error: (err) => {
+        this.patchCategory(c.name, { saving: false });
+        this.error.set(describeError(err, 'Nie udało się zapisać koloru.'));
+      },
+    });
+  }
+
   private adjustGroupCount(groupId: number | null, delta: number): void {
     if (groupId === null) return;
     this.groups.update((gs) =>
@@ -425,7 +446,7 @@ function toGroupRow(g: CategoryGroup): GroupRow {
 }
 
 function toCategoryRow(c: CategoryWithGroup): CategoryRow {
-  return { name: c.name, groupId: c.groupId ?? null, groupName: c.groupName ?? null, saving: false };
+  return { name: c.name, groupId: c.groupId ?? null, groupName: c.groupName ?? null, color: c.color ?? null, saving: false };
 }
 
 function byGroupOrder(a: GroupRow, b: GroupRow): number {

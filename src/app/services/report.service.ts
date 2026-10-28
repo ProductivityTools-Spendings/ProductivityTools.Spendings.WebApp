@@ -82,6 +82,8 @@ export interface Hygiene {
   firstMonth: string | null;
   /** All category groups (may be empty when the user has not created any). */
   groups: CategoryGroupInfo[];
+  /** User-defined chart colours (category → "#rrggbb"); categories missing here use the palette. */
+  categoryColors?: Record<string, string>;
 }
 
 @Injectable({ providedIn: 'root' })

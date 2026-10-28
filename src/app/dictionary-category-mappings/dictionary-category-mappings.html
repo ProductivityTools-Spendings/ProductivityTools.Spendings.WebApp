@@ -184,6 +184,7 @@
             <tr>
               <th>Kategoria</th>
               <th>Grupa</th>
+              <th title="Kolor kategorii na wszystkich wykresach raportów">Kolor</th>
             </tr>
           </thead>
           <tbody>
@@ -201,6 +202,16 @@
                     <option value="" [selected]="c.groupId === null">— bez grupy —</option>
                     @for (g of groups(); track g.id) { <option [value]="g.id.toString()" [selected]="g.id === c.groupId">{{ g.name }}</option> }
                   </select>
+                </td>
+                <td class="dict__cat-color">
+                  <input class="dict__color" type="color" [value]="c.color || '#9e9e9e'" [disabled]="c.saving"
+                         (change)="setCategoryColor(c, $any($event.target).value)"
+                         [title]="c.color ? 'Kolor kategorii na wykresach' : 'Kolor automatyczny – kliknij, aby wybrać'" />
+                  @if (c.color) {
+                    <button type="button" class="link" (click)="setCategoryColor(c, null)" [disabled]="c.saving" title="Przywróć kolor automatyczny">auto</button>
+                  } @else {
+                    <span class="dict__meta">auto</span>
+                  }
                 </td>
               </tr>
             }
