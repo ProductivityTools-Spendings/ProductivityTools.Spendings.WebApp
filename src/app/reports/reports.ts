@@ -410,6 +410,18 @@ export class Reports implements OnInit {
   protected readonly barH = 300;
   protected readonly barPad = { l: 70, r: 16, t: 22, b: 36 };
 
+  /** Stable colour per pivot category (by table order of all categories, so toggling does not recolour). */
+  protected readonly pivotColors = computed(() => new Map(this.pivot().map((r, i) => [r.category, PIE_COLORS[i % PIE_COLORS.length]])));
+
+  /** "wszystkie" / "żadna" for the pivot category chips (same selection as the table checkboxes). */
+  protected pivotSetAll(include: boolean): void {
+    this.excluded.update(() => {
+      const next = include ? new Set<string>() : new Set(this.pivot().map((r) => r.category));
+      localStorage.setItem(Reports.EXCLUDED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
   /** Series of the bar chart: included categories (categories mode) or groups (groups mode), in table order. */
   protected readonly pivotBarSeries = computed(() => {
     if (this.pivotMode() === 'groups' && this.hasGroups()) {
@@ -420,7 +432,7 @@ export class Reports implements OnInit {
     const excluded = this.excluded();
     return this.pivot()
       .filter((r) => !excluded.has(r.category))
-      .map((r, i) => ({ key: r.category, label: r.category, color: PIE_COLORS[i % PIE_COLORS.length], byMonth: r.byMonth, group: null }));
+      .map((r) => ({ key: r.category, label: r.category, color: this.pivotColors().get(r.category) ?? PIE_COLORS[0], byMonth: r.byMonth, group: null }));
   });
 
   /** Largest stacked spending (up) and net inflow (down) per month – the chart's value range. */
@@ -587,6 +599,26 @@ export class Reports implements OnInit {
     }
     return [...totals.entries()].sort((a, b) => a[1] - b[1]).map(([c]) => c);
   });
+
+  /** MAT categories split into groups (sortOrder, "Bez grupy" last), like the daily chart filter. */
+  protected readonly matGroups = computed(() => {
+    const excluded = this.matExcluded();
+    return groupCategories(this.matCategories(), this.groupMap(), this.groupKeys()).map((g) => ({
+      ...g,
+      label: groupLabel(g.group),
+      color: this.groupColor(g.group),
+      includedCount: g.categories.filter((c) => !excluded.has(c)).length,
+    }));
+  });
+
+  /** Same semantics as the pivot's group checkbox, persisted in the MAT key. */
+  protected toggleMatGroup(categories: string[]): void {
+    this.matExcluded.update((set) => {
+      const next = toggleGroupExclusion(set, categories);
+      localStorage.setItem(Reports.MAT_EXCLUDED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   protected matIncluded(category: string): boolean {
     return !this.matExcluded().has(category);

@@ -198,11 +198,38 @@
           <text class="xlabel" [attr.x]="col.x + col.w / 2" [attr.y]="barH - 12" text-anchor="middle">{{ col.month }}</text>
         }
       </svg>
-      <div class="pivot-legend">
-        @for (s of pivotBarSeries(); track s.key) {
-          <span class="pivot-legend__item"><span class="dot" [style.background]="s.color"></span>{{ s.label }}</span>
+    }
+    <!-- Category filter, same as in "Wydatki narastająco"; shares the selection with the table checkboxes -->
+    <ng-template #pivotChip let-c>
+      <label class="mat-cat" [class.mat-cat--off]="!isIncluded(c)">
+        <input type="checkbox" [checked]="isIncluded(c)" (change)="toggleCategory(c)" />
+        <span class="swatch" [style.background]="pivotColors().get(c)"></span> {{ c }}
+      </label>
+    </ng-template>
+    <div class="mat-cats">
+      <span class="muted">
+        <button type="button" class="link" (click)="pivotSetAll(true)">wszystkie</button> ·
+        <button type="button" class="link" (click)="pivotSetAll(false)">żadna</button>
+      </span>
+      @if (!hasGroups()) {
+        @for (r of pivot(); track r.category) {
+          <ng-container *ngTemplateOutlet="pivotChip; context: { $implicit: r.category }" />
         }
-      </div>
+      }
+    </div>
+    @if (hasGroups()) {
+      @for (g of pivotGroups(); track g.group) {
+        <div class="mat-cats daily-group-line">
+          <label class="mat-cat daily-group" [class.mat-cat--off]="g.includedCount === 0" [title]="g.includedCount + '/' + g.categories.length + ' kategorii'">
+            <input type="checkbox" [checked]="g.includedCount === g.categories.length" [indeterminate]="g.includedCount > 0 && g.includedCount < g.categories.length" (change)="toggleGroupCategories(g)" />
+            <span class="dot" [style.background]="groupColor(g.group)"></span><strong>{{ g.label }}</strong>
+          </label>
+          <span class="muted">–</span>
+          @for (r of g.categories; track r.category) {
+            <ng-container *ngTemplateOutlet="pivotChip; context: { $implicit: r.category }" />
+          }
+        </div>
+      }
     }
     <p class="muted">Saldo netto kategorii w PLN: wydatki ze znakiem minus, wpływy/zwroty z plusem (na zielono). Intensywność tła = wielkość wydatku. Odznaczone kategorie (szare) nie wchodzą do wiersza „Razem”; wybór jest zapamiętywany. Kliknij komórkę, aby zobaczyć transakcje.@if (hasGroups()) { Filtr grup nad tabelą ogranicza kategorie we wszystkich sekcjach; w trybie „Grupy” wiersz grupy sumuje jej zaznaczone kategorie (▸ rozwija listę). }</p>
 
@@ -265,16 +292,16 @@
             <path [attr.d]="g.path" [attr.fill]="g.color" class="pie__slice clickable" (click)="openDrill(null, null, { key: g.group, categories: g.categories })">
               <title>Grupa {{ g.label }}: {{ g.pct | number: '1.1-1' : 'pl' }} % · {{ g.value | number: '1.0-0' : 'pl' }} zł · {{ g.categories.length }} kat.</title>
             </path>
-            @if (g.pct >= 5) {
-              <text class="pie__label" [attr.x]="g.labelX" [attr.y]="g.labelY">{{ g.pct | number: '1.0-0' : 'pl' }}%</text>
+            @if (g.pct >= 8) {
+              <text class="pie__label" [attr.x]="g.labelX" [attr.y]="g.labelY">{{ g.value | number: '1.0-0' : 'pl' }}</text>
             }
           }
           @for (s of pieSlices(); track s.category) {
             <path [attr.d]="s.path" [attr.fill]="s.color" class="pie__slice clickable" (click)="openDrill(s.category, null)">
               <title>{{ s.category }}@if (hasGroups()) { ({{ s.groupLabel }})}: {{ s.pct | number: '1.1-1' : 'pl' }} % · {{ s.value | number: '1.0-0' : 'pl' }} zł</title>
             </path>
-            @if (s.pct >= 4) {
-              <text class="pie__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.pct | number: '1.0-0' : 'pl' }}%</text>
+            @if (s.pct >= 6) {
+              <text class="pie__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.value | number: '1.0-0' : 'pl' }}</text>
             }
           }
           <text class="pie__center" [attr.x]="pieC" [attr.y]="pieC - 4">{{ pieTotal() | number: '1.0-0' : 'pl' }}</text>
@@ -459,18 +486,38 @@
   <section class="card">
     <div class="card__head">
       <h3>MAT – średnia krocząca 12 miesięcy</h3>
+    </div>
+    <!-- Category filter, same layout as in "Wydatki narastająco" (own selection, persisted separately) -->
+    <ng-template #matChip let-c>
+      <label class="mat-cat" [class.mat-cat--off]="!matIncluded(c)">
+        <input type="checkbox" [checked]="matIncluded(c)" (change)="toggleMatCategory(c)" /> {{ c }}
+      </label>
+    </ng-template>
+    <div class="mat-cats">
       <span class="muted">
         <button type="button" class="link" (click)="matSetAll(true)">wszystkie</button> ·
         <button type="button" class="link" (click)="matSetAll(false)">żadna</button>
       </span>
-    </div>
-    <div class="mat-cats">
-      @for (c of matCategories(); track c) {
-        <label class="mat-cat" [class.mat-cat--off]="!matIncluded(c)">
-          <input type="checkbox" [checked]="matIncluded(c)" (change)="toggleMatCategory(c)" /> {{ c }}
-        </label>
+      @if (!hasGroups()) {
+        @for (c of matCategories(); track c) {
+          <ng-container *ngTemplateOutlet="matChip; context: { $implicit: c }" />
+        }
       }
     </div>
+    @if (hasGroups()) {
+      @for (g of matGroups(); track g.group) {
+        <div class="mat-cats daily-group-line">
+          <label class="mat-cat daily-group" [class.mat-cat--off]="g.includedCount === 0" [title]="g.includedCount + '/' + g.categories.length + ' kategorii'">
+            <input type="checkbox" [checked]="g.includedCount === g.categories.length" [indeterminate]="g.includedCount > 0 && g.includedCount < g.categories.length" (change)="toggleMatGroup(g.categories)" />
+            <span class="dot" [style.background]="g.color"></span><strong>{{ g.label }}</strong>
+          </label>
+          <span class="muted">–</span>
+          @for (c of g.categories; track c) {
+            <ng-container *ngTemplateOutlet="matChip; context: { $implicit: c }" />
+          }
+        </div>
+      }
+    }
 
     @if (matRows().length > 0) {
       <svg class="mat-chart" [attr.viewBox]="'0 0 ' + chartW + ' ' + chartH" role="img" aria-label="Wykres MAT">
