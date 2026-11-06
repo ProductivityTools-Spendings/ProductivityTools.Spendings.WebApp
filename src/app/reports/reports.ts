@@ -231,9 +231,19 @@ export class Reports implements OnInit {
   /** User-defined category colours (Słownik kategorii → Grupy kategorii); used by every chart. */
   protected readonly categoryColorMap = computed(() => new Map(Object.entries(this.hygiene()?.categoryColors ?? {})));
 
-  /** Colour of a category: the user-defined one, otherwise the palette colour at `index`. */
-  protected categoryColor(category: string, index: number): string {
-    return this.categoryColorMap().get(category) ?? PIE_COLORS[index % PIE_COLORS.length];
+  /** Stable palette slot of every dictionary category (its position in the sorted list of all categories). */
+  private readonly categoryPaletteIndex = computed(() => new Map((this.hygiene()?.categoryNames ?? []).map((c, i) => [c, i])));
+
+  /**
+   * Colour of a category, identical in every chart: the user-defined one, otherwise a palette colour derived from
+   * the category itself (position in the dictionary; name hash for categories outside it, e.g. "(brak)").
+   * `_index` (position in the particular chart) is intentionally ignored - it differed between sections.
+   */
+  protected categoryColor(category: string, _index = 0): string {
+    const own = this.categoryColorMap().get(category);
+    if (own) return own;
+    const slot = this.categoryPaletteIndex().get(category) ?? hashString(category);
+    return PIE_COLORS[slot % PIE_COLORS.length];
   }
 
   protected groupColor(key: string): string {
@@ -1033,4 +1043,11 @@ export class Reports implements OnInit {
     this.showInactive.update((v) => !v);
   }
 
+}
+
+/** Small non-negative string hash (palette slot for categories missing from the dictionary). */
+function hashString(text: string): number {
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
+  return Math.abs(h);
 }

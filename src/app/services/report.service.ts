@@ -84,6 +84,8 @@ export interface Hygiene {
   groups: CategoryGroupInfo[];
   /** User-defined chart colours (category → "#rrggbb"); categories missing here use the palette. */
   categoryColors?: Record<string, string>;
+  /** All dictionary category names (sorted); position gives the stable palette colour of uncoloured categories. */
+  categoryNames?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
