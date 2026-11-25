@@ -1,4 +1,7 @@
 <header class="app-header">
+  @if (user()) {
+    <button type="button" class="hamburger" (click)="drawerOpen.set(true)" aria-label="Menu">☰</button>
+  }
   <h1>{{ title() }}</h1>
   @if (user()) {
     <nav class="nav">
@@ -71,6 +74,40 @@
   </div>
 </header>
 
+<!-- Mobile: drawer with every section -->
+@if (user() && drawerOpen()) {
+  <div class="drawer-backdrop" (click)="drawerOpen.set(false)"></div>
+  <nav class="drawer" aria-label="Menu">
+    <div class="drawer__head">
+      <strong>{{ title() }}</strong>
+      <button type="button" class="drawer__close" (click)="drawerOpen.set(false)" aria-label="Zamknij">✕</button>
+    </div>
+    <a routerLink="/spendings" routerLinkActive="active">Transakcje</a>
+    <a routerLink="/reports" routerLinkActive="active">Raporty</a>
+    <a routerLink="/statement-import" routerLinkActive="active">Import wyciągu
+      @if (events.pendingStatementCount(); as n) { <span class="badge">{{ n }}</span> }
+    </a>
+    <div class="drawer__section">Pobierz z Gmaila</div>
+    @if (mbankGmailImportUrl) { <a [href]="mbankGmailImportUrl" target="_blank" rel="noopener">mBank ↗</a> }
+    @if (allegroGmailImportUrl) { <a [href]="allegroGmailImportUrl" target="_blank" rel="noopener">Allegro ↗</a> }
+    <button type="button" (click)="processEmails()" [disabled]="processing()">{{ processing() ? 'Przetwarzanie…' : 'Przetwórz pobrane e-maile' }}</button>
+    <div class="drawer__section">Przeglądanie</div>
+    <a routerLink="/browse/mbank-emails" routerLinkActive="active">E-maile mBank</a>
+    <a routerLink="/browse/card-authorizations" routerLinkActive="active">Autoryzacje kart</a>
+    <a routerLink="/browse/allegro-emails" routerLinkActive="active">E-maile Allegro</a>
+    <a routerLink="/browse/allegro-purchases" routerLinkActive="active">Zakupy Allegro</a>
+    <div class="drawer__section">Konfiguracja</div>
+    <a routerLink="/settings/accounts" routerLinkActive="active">Rachunki</a>
+    <a routerLink="/settings/categories" routerLinkActive="active">Kategorie i grupy</a>
+    <a routerLink="/settings/category-mappings" routerLinkActive="active">Nazwa → kategoria</a>
+    <a routerLink="/settings/account-rules" routerLinkActive="active">Reguły rachunków</a>
+    <div class="drawer__foot">
+      <span class="drawer__email">{{ user()?.email }}</span>
+      <button type="button" (click)="signOut()">Wyloguj</button>
+    </div>
+  </nav>
+}
+
 @if (toast(); as t) {
   <div class="toast" [class.toast--error]="t.error" role="status">
     {{ t.text }}
@@ -81,3 +118,14 @@
 <main>
   <router-outlet />
 </main>
+
+<!-- Mobile: bottom tab bar with the two main sections -->
+@if (user()) {
+  <nav class="tabbar" aria-label="Główne sekcje">
+    <a routerLink="/spendings" routerLinkActive="active"><span class="tabbar__icon">☰</span>Transakcje</a>
+    <a routerLink="/reports" routerLinkActive="active"><span class="tabbar__icon">▤</span>Raporty</a>
+    <a routerLink="/statement-import" routerLinkActive="active"><span class="tabbar__icon">⬆</span>Import
+      @if (events.pendingStatementCount(); as n) { <span class="badge tabbar__badge">{{ n }}</span> }
+    </a>
+  </nav>
+}

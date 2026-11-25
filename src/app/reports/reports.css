@@ -651,3 +651,86 @@ td.selected {
   height: 10px;
   border-radius: 2px;
 }
+
+/* ===================== mobile ===================== */
+@media (max-width: 768px) {
+  .reports {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .reports__header h2 {
+    font-size: 1.2rem;
+  }
+
+  .reports__filters {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  input[type='month'],
+  select {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+
+  /* range and group chips: one swipeable row instead of several wrapped lines */
+  .ranges {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+  }
+
+  .ranges .range {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .card {
+    padding: 0.75rem;
+    /* wide charts and tables scroll inside their card instead of widening the page */
+    overflow-x: auto;
+  }
+
+  .card h3 {
+    font-size: 1rem;
+  }
+
+  /* 1200px-wide SVG charts would shrink their labels to unreadable sizes - keep a minimum width and scroll */
+  .mat-chart {
+    min-width: 640px;
+  }
+
+  .daily-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-row .daily-chart {
+    flex: 0 0 auto;
+    min-width: 640px;
+  }
+
+  .pie {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .pie__chart {
+    width: min(320px, 100%);
+  }
+
+  .daily-pie {
+    width: min(260px, 100%);
+    align-self: center;
+  }
+
+  .pie__legend {
+    width: 100%;
+  }
+
+  .muted {
+    font-size: 0.8rem;
+  }
+}

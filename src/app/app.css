@@ -202,3 +202,185 @@
 .app-header__user button:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* ===================== mobile ===================== */
+.hamburger,
+.drawer,
+.drawer-backdrop,
+.tabbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .app-header h1 {
+    font-size: 1.05rem;
+  }
+
+  /* desktop navigation, actions and user block move to the drawer */
+  .nav,
+  .actions,
+  .app-header__user {
+    display: none;
+  }
+
+  .hamburger {
+    display: block;
+    padding: 0.1rem 0.45rem;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .toast {
+    margin: 0.5rem 0.75rem 0;
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 201;
+    width: min(80vw, 300px);
+    overflow-y: auto;
+    background: #fff;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .drawer__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    background: #1976d2;
+    color: #fff;
+  }
+
+  .drawer__close {
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1.1rem;
+  }
+
+  .drawer a,
+  .drawer > button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border: none;
+    background: transparent;
+    color: #212121;
+    text-decoration: none;
+    text-align: left;
+    font: inherit;
+  }
+
+  .drawer a.active {
+    color: #1976d2;
+    font-weight: 600;
+    background: #e3f2fd;
+  }
+
+  .drawer__section {
+    padding: 0.8rem 1rem 0.3rem;
+    color: #757575;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .drawer__foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    border-top: 1px solid #e0e0e0;
+    font-size: 0.85rem;
+  }
+
+  .drawer__email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #555;
+  }
+
+  .drawer__foot button {
+    padding: 0.35rem 0.8rem;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    background: #fff;
+  }
+
+  /* room for the fixed bottom tab bar */
+  main {
+    padding-bottom: calc(3.6rem + env(safe-area-inset-bottom));
+  }
+
+  .tabbar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .tabbar a {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.4rem 0 0.45rem;
+    color: #616161;
+    text-decoration: none;
+    font-size: 0.75rem;
+  }
+
+  .tabbar a.active {
+    color: #1976d2;
+    font-weight: 600;
+  }
+
+  .tabbar__icon {
+    font-size: 1.2rem;
+    line-height: 1.2;
+  }
+
+  .tabbar__badge {
+    position: absolute;
+    top: 0.2rem;
+    left: calc(50% + 0.5rem);
+  }
+}

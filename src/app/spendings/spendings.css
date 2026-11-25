@@ -510,3 +510,212 @@ tr.refund-candidate .refund-btn {
   color: #757575;
   white-space: normal;
 }
+
+/* ===================== mobile: card list instead of the table ===================== */
+.m-filters,
+.m-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .spendings {
+    padding: 0.75rem;
+  }
+
+  .spendings__header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .spendings__header h2 {
+    font-size: 1.2rem;
+  }
+
+  .spendings__actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .spendings__count {
+    width: 100%;
+  }
+
+  .spendings__table-wrapper {
+    display: none;
+  }
+
+  .m-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .m-filters input,
+  .m-filters select {
+    min-width: 0;
+    padding: 0.5rem;
+    font-size: 16px; /* >= 16px prevents iOS zoom on focus */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  .m-filters__search {
+    flex: 1 1 auto;
+  }
+
+  .m-filters select {
+    flex: 0 1 45%;
+  }
+
+  .m-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .m-card {
+    position: relative;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .m-card--editing {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
+  }
+
+  .m-card--duplicate {
+    opacity: 0.6;
+  }
+
+  .m-card__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .m-card__date {
+    color: #757575;
+    font-size: 0.8rem;
+  }
+
+  .m-card__amount {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #c62828;
+    white-space: nowrap;
+  }
+
+  .m-card__amount--in {
+    color: #2e7d32;
+  }
+
+  .m-card__name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0.2rem 0 0.4rem;
+    color: #212121;
+    text-decoration: none;
+    font-weight: 600;
+    word-break: break-word;
+  }
+
+  .m-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding-right: 5rem; /* room for the Allegro button */
+    cursor: pointer;
+  }
+
+  .m-card__category {
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: #e3f2fd;
+    color: #0d47a1;
+    font-size: 0.8rem;
+  }
+
+  .m-card__category--empty,
+  .m-card__note--empty {
+    background: transparent;
+    color: #1976d2;
+    border: 1px dashed #90caf9;
+  }
+
+  .m-card__note {
+    font-size: 0.85rem;
+    color: #555;
+    word-break: break-word;
+  }
+
+  .m-card__note--empty {
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+  }
+
+  .m-card__allegro {
+    position: absolute;
+    right: 0.8rem;
+    bottom: 0.6rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid #ff5a00;
+    border-radius: 999px;
+    background: #fff3e0;
+    color: #e65100;
+    font-size: 0.8rem;
+  }
+
+  .m-card__edit {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .m-card__edit select,
+  .m-card__edit input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem;
+    font-size: 16px;
+    border: 1px solid #1976d2;
+    border-radius: 6px;
+  }
+
+  .m-card__edit-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .m-btn {
+    flex: 1;
+    padding: 0.55rem;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 0.95rem;
+  }
+
+  .m-btn--primary {
+    border-color: #1976d2;
+    background: #1976d2;
+    color: #fff;
+  }
+
+  .m-empty {
+    padding: 1rem;
+    text-align: center;
+    color: #757575;
+  }
+}

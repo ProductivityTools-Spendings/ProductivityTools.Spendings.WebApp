@@ -209,6 +209,60 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Mobile: card list with date, name, amount, category, Allegro and note (the table is hidden on narrow screens) -->
+    <div class="m-filters">
+      <input class="m-filters__search" type="search" [ngModel]="filters().name" (ngModelChange)="setFilter('name', $event)" placeholder="Szukaj…" />
+      <select [ngModel]="filters().category" (ngModelChange)="setFilter('category', $event)">
+        <option value="">wszystkie kategorie</option>
+        <option value="__none__">(bez kategorii)</option>
+        @for (c of categoryFilterOptions(); track c) { <option [value]="c">{{ c }}</option> }
+      </select>
+    </div>
+    <ul class="m-list">
+      @for (s of filteredSpendings(); track s.id) {
+        <li class="m-card" [class.m-card--editing]="isEditing(s)" [class.m-card--duplicate]="s.duplicateOf !== null">
+          <div class="m-card__top">
+            <span class="m-card__date">{{ s.operationDate }}</span>
+            <span class="m-card__amount" [class.m-card__amount--in]="(s.amountPln ?? s.amount) > 0">
+              @if (s.amountPln !== null) {
+                {{ s.amountPln | currency: 'PLN' : 'symbol-narrow' : '1.2-2' : 'pl' }}
+              } @else {
+                {{ s.amount | currency: (s.currency || 'PLN') : 'symbol-narrow' : '1.2-2' : 'pl' }}
+              }
+            </span>
+          </div>
+          <a class="m-card__name" [routerLink]="['/spendings', s.id]">{{ s.name }}</a>
+          @if (isEditing(s)) {
+            <div class="m-card__edit">
+              <select [ngModel]="editing()!.category" (ngModelChange)="onCategoryPicked($event)" [disabled]="saving()">
+                <option value="">— brak kategorii —</option>
+                @for (c of categoryOptions(); track c) { <option [value]="c">{{ c }}</option> }
+              </select>
+              <input [(ngModel)]="editing()!.note" (keydown)="onEditKey($event)" [disabled]="saving()" placeholder="notatka" />
+              <div class="m-card__edit-buttons">
+                <button type="button" class="m-btn m-btn--primary" (click)="saveEdit()" [disabled]="saving()">Zapisz</button>
+                <button type="button" class="m-btn" (click)="cancelEdit()" [disabled]="saving()">Anuluj</button>
+              </div>
+            </div>
+          } @else {
+            <div class="m-card__meta" (click)="startEdit(s)">
+              <span class="m-card__category" [class.m-card__category--empty]="!s.category">{{ s.category || '+ kategoria' }}</span>
+              @if (s.note) {
+                <span class="m-card__note">{{ s.note }}</span>
+              } @else {
+                <span class="m-card__note m-card__note--empty">+ notatka</span>
+              }
+            </div>
+          }
+          @if (s.allegroRawEmailId !== null) {
+            <button type="button" class="m-card__allegro" (click)="openAllegro(s)">Allegro ▸</button>
+          }
+        </li>
+      } @empty {
+        <li class="m-empty">Brak transakcji pasujących do filtrów.</li>
+      }
+    </ul>
   }
 
   @if (allegroPopup(); as s) {

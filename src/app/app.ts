@@ -24,6 +24,9 @@ export class App {
   protected readonly title = signal('Family Expenses');
   protected readonly user = this.auth.user;
 
+  /** Mobile drawer (☰) open. */
+  protected readonly drawerOpen = signal(false);
+
   /** Currently open dropdown menu (null = all closed). */
   protected readonly openMenu = signal<Menu | null>(null);
   /** Section of the current URL, highlights the dropdown trigger. */
@@ -42,6 +45,7 @@ export class App {
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed(inject(DestroyRef)))
       .subscribe((e) => {
         this.openMenu.set(null);
+        this.drawerOpen.set(false);
         this.section.set(e.urlAfterRedirects.split('/')[1] ?? '');
         if (this.user()) this.events.refreshPendingCount();
       });
@@ -65,11 +69,13 @@ export class App {
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
     this.openMenu.set(null);
+    this.drawerOpen.set(false);
   }
 
   /** Processes e-mails already sent by the Gmail scripts (NEW + ERROR) and tells the pages to reload. */
   protected processEmails(): void {
     this.openMenu.set(null);
+    this.drawerOpen.set(false);
     if (this.processing()) return;
     this.processing.set(true);
     this.emailService.process().subscribe({
