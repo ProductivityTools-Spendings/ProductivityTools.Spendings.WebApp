@@ -375,8 +375,19 @@ td.editable:hover {
   gap: 0.25rem;
 }
 
+/* note editor fits inside the fixed-width note column (the column must not grow while editing) */
 .edit--note {
-  min-width: 14rem;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.note .edit-row {
+  width: 100%;
+}
+
+.note .edit-btn {
+  flex: 0 0 auto;
 }
 
 .edit-btn {
@@ -449,4 +460,11 @@ tr.refund-candidate .refund-btn {
 
 .name-link:hover {
   text-decoration: underline;
+}
+
+/* fixed note column width: adding/editing a note must not resize the column and shift the other columns */
+.spendings__table td.note {
+  width: 14rem;
+  min-width: 14rem;
+  max-width: 14rem;
 }
