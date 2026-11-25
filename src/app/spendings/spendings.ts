@@ -317,12 +317,27 @@ export class Spendings implements OnInit {
     return this.loading() || this.runningAction() !== null;
   }
 
+  /** How many latest transactions are loaded by default ("Załaduj wszystkie" removes the limit). */
+  protected static readonly DEFAULT_LIMIT = 300;
+  protected readonly defaultLimit = Spendings.DEFAULT_LIMIT;
+  /** true = all transactions loaded; false = only the latest DEFAULT_LIMIT. */
+  protected readonly loadedAll = signal(false);
+  /** true when the last limited load returned a full page (there may be older transactions). */
+  protected readonly hasMore = signal(false);
+
+  protected loadAll(): void {
+    this.loadedAll.set(true);
+    this.load();
+  }
+
   protected load(): void {
     this.loading.set(true);
     this.error.set(null);
     this.linkingFor.set(null);
-    this.spendingService.getAll().subscribe({
+    const limit = this.loadedAll() ? undefined : Spendings.DEFAULT_LIMIT;
+    this.spendingService.getAll(limit).subscribe({
       next: (data) => {
+        this.hasMore.set(limit !== undefined && data.length >= limit);
         this.spendings.set(data);
         this.loading.set(false);
       },

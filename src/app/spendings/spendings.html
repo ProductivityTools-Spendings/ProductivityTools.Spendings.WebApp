@@ -3,6 +3,10 @@
     <h2>Transakcje</h2>
     <div class="spendings__actions">
       <span class="spendings__count">
+        @if (hasMore()) {
+          ostatnie {{ defaultLimit }} ·
+          <button type="button" class="link" (click)="loadAll()" [disabled]="loading()" title="Pobierz wszystkie transakcje (może potrwać)">załaduj wszystkie</button> ·
+        }
         @if (hasFilters()) {
           {{ filteredSpendings().length }} z {{ visibleSpendings().length }} pozycji ·
           <button type="button" class="link" (click)="clearFilters()">wyczyść filtry</button>

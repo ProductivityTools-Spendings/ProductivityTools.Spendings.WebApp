@@ -81,8 +81,9 @@ export class SpendingService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/api/spendings`;
 
-  getAll(): Observable<Spending[]> {
-    return this.http.get<Spending[]>(this.baseUrl);
+  /** Newest first; `limit` = only the latest N transactions (omit for all). */
+  getAll(limit?: number): Observable<Spending[]> {
+    return limit ? this.http.get<Spending[]>(this.baseUrl, { params: { limit } }) : this.http.get<Spending[]>(this.baseUrl);
   }
 
   /** Full details of one transaction (all columns, source e-mail, linked statement operation with full title). */
