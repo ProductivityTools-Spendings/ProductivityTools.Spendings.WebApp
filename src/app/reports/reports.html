@@ -51,22 +51,22 @@
         <a class="counter" [class.counter--warn]="h.uncategorized > 0" routerLink="/spendings">
           <strong>{{ h.uncategorized }}</strong><span>transakcji bez kategorii</span>
         </a>
-        <a class="counter" [class.counter--warn]="h.withoutAccount > 0" routerLink="/dictionary/accounts">
+        <a class="counter" [class.counter--warn]="h.withoutAccount > 0" routerLink="/settings/accounts">
           <strong>{{ h.withoutAccount }}</strong><span>transakcji bez konta</span>
         </a>
-        <a class="counter" [class.counter--warn]="h.unmappedAccounts > 0" routerLink="/dictionary/accounts">
+        <a class="counter" [class.counter--warn]="h.unmappedAccounts > 0" routerLink="/settings/accounts">
           <strong>{{ h.unmappedAccounts }}</strong><span>rachunków bez nazwy</span>
         </a>
         <a class="counter" [class.counter--warn]="h.withoutPln > 0" routerLink="/spendings">
           <strong>{{ h.withoutPln }}</strong><span>bez kwoty PLN</span>
         </a>
-        <a class="counter" routerLink="/card-authorizations">
+        <a class="counter" routerLink="/browse/card-authorizations">
           <strong>{{ h.unlinkedAuthorizations }}</strong><span>autoryzacji bez obciążenia</span>
         </a>
-        <a class="counter" routerLink="/allegro/emails">
+        <a class="counter" routerLink="/browse/allegro-emails">
           <strong>{{ h.allegroEmailsWithoutSpending }}</strong><span>maili Allegro bez transakcji</span>
         </a>
-        <a class="counter" [class.counter--error]="h.emailsInError > 0" routerLink="/emails">
+        <a class="counter" [class.counter--error]="h.emailsInError > 0" routerLink="/browse/mbank-emails">
           <strong>{{ h.emailsInError }}</strong><span>maili z błędem</span>
         </a>
         <a class="counter" routerLink="/spendings">

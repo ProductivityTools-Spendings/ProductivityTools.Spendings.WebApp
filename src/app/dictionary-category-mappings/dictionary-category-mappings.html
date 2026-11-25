@@ -1,6 +1,6 @@
 <section class="dict">
   <header class="dict__header">
-    <h2>Słownik kategorii</h2>
+    <h2>{{ fixedTab() === 'groups' ? 'Kategorie i grupy' : fixedTab() === 'mappings' ? 'Nazwa → kategoria' : 'Słownik kategorii' }}</h2>
     <div class="dict__actions">
       @if (tab() === 'mappings') {
         <span class="dict__count">{{ rows().length }} wpisów</span>
@@ -12,10 +12,12 @@
     </div>
   </header>
 
+  @if (!fixedTab()) {
   <nav class="dict__tabs" role="tablist">
     <button type="button" role="tab" class="dict__tab" [class.active]="tab() === 'mappings'" [attr.aria-selected]="tab() === 'mappings'" (click)="selectTab('mappings')">Nazwa → kategoria</button>
     <button type="button" role="tab" class="dict__tab" [class.active]="tab() === 'groups'" [attr.aria-selected]="tab() === 'groups'" (click)="selectTab('groups')">Grupy kategorii</button>
   </nav>
+  }
 
   @if (status(); as msg) {
     <p class="dict__status">{{ msg }}</p>

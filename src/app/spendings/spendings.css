@@ -468,3 +468,45 @@ tr.refund-candidate .refund-btn {
   min-width: 14rem;
   max-width: 14rem;
 }
+
+/* "Narzędzia ▾" dropdown */
+.tools {
+  position: relative;
+}
+
+.tools__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 15rem;
+  padding: 0.3rem 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.spendings__actions .tools__list button {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #212121;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.spendings__actions .tools__list button:hover {
+  background: #e3f2fd;
+}
+
+.tools__hint {
+  margin: 0.3rem 1rem 0.2rem;
+  font-size: 0.75rem;
+  color: #757575;
+  white-space: normal;
+}

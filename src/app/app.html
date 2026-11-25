@@ -1,19 +1,68 @@
 <header class="app-header">
   <h1>{{ title() }}</h1>
-  <nav>
-    @if (user()) {
-      <a routerLink="/emails" routerLinkActive="active">E-maile mBank</a>
+  @if (user()) {
+    <nav class="nav">
       <a routerLink="/spendings" routerLinkActive="active">Transakcje</a>
-      <a routerLink="/card-authorizations" routerLinkActive="active">Autoryzacje kart</a>
-      <a routerLink="/allegro/emails" routerLinkActive="active">E-maile Allegro</a>
-      <a routerLink="/allegro/purchases" routerLinkActive="active">Zakupy Allegro</a>
       <a routerLink="/reports" routerLinkActive="active">Raporty</a>
-      <a routerLink="/statement-import" routerLinkActive="active">Import wyciągu</a>
-      <a routerLink="/dictionary/accounts" routerLinkActive="active">Słownik rachunków</a>
-      <a routerLink="/dictionary/categories" routerLinkActive="active">Słownik kategorii</a>
-      <a routerLink="/dictionary/account-rules" routerLinkActive="active">Reguły rachunków</a>
-    }
-  </nav>
+
+      <div class="menu" (click)="$event.stopPropagation()">
+        <button type="button" class="menu__trigger" [class.active]="section() === 'browse'" [class.open]="openMenu() === 'browse'"
+                (click)="toggleMenu('browse', $event)" aria-haspopup="true" [attr.aria-expanded]="openMenu() === 'browse'">Przeglądanie ▾</button>
+        @if (openMenu() === 'browse') {
+          <div class="menu__list" role="menu">
+            <a role="menuitem" routerLink="/browse/mbank-emails" routerLinkActive="active">E-maile mBank</a>
+            <a role="menuitem" routerLink="/browse/card-authorizations" routerLinkActive="active">Autoryzacje kart</a>
+            <a role="menuitem" routerLink="/browse/allegro-emails" routerLinkActive="active">E-maile Allegro</a>
+            <a role="menuitem" routerLink="/browse/allegro-purchases" routerLinkActive="active">Zakupy Allegro</a>
+          </div>
+        }
+      </div>
+
+      <div class="menu" (click)="$event.stopPropagation()">
+        <button type="button" class="menu__trigger" [class.active]="section() === 'settings'" [class.open]="openMenu() === 'settings'"
+                (click)="toggleMenu('settings', $event)" aria-haspopup="true" [attr.aria-expanded]="openMenu() === 'settings'">Konfiguracja ▾</button>
+        @if (openMenu() === 'settings') {
+          <div class="menu__list" role="menu">
+            <a role="menuitem" routerLink="/settings/accounts" routerLinkActive="active">Rachunki</a>
+            <a role="menuitem" routerLink="/settings/categories" routerLinkActive="active">Kategorie i grupy</a>
+            <a role="menuitem" routerLink="/settings/category-mappings" routerLinkActive="active">Nazwa → kategoria</a>
+            <a role="menuitem" routerLink="/settings/account-rules" routerLinkActive="active">Reguły rachunków</a>
+          </div>
+        }
+      </div>
+    </nav>
+
+    <div class="actions">
+      <div class="menu" (click)="$event.stopPropagation()">
+        <button type="button" class="action" [class.open]="openMenu() === 'gmail'" [disabled]="processing()"
+                (click)="toggleMenu('gmail', $event)" aria-haspopup="true" [attr.aria-expanded]="openMenu() === 'gmail'"
+                title="Pobieranie powiadomień z Gmaila i ich przetwarzanie">
+          {{ processing() ? 'Przetwarzanie…' : '⟳ Pobierz z Gmaila ▾' }}
+        </button>
+        @if (openMenu() === 'gmail') {
+          <div class="menu__list menu__list--right" role="menu">
+            @if (mbankGmailImportUrl) {
+              <a role="menuitem" [href]="mbankGmailImportUrl" target="_blank" rel="noopener" (click)="openMenu.set(null)"
+                 title="Uruchamia skrypt Apps Script w nowej karcie">mBank – pobierz z Gmaila ↗</a>
+            }
+            @if (allegroGmailImportUrl) {
+              <a role="menuitem" [href]="allegroGmailImportUrl" target="_blank" rel="noopener" (click)="openMenu.set(null)"
+                 title="Uruchamia skrypt Apps Script w nowej karcie">Allegro – pobierz z Gmaila ↗</a>
+            }
+            <div class="menu__sep"></div>
+            <button type="button" role="menuitem" (click)="processEmails()"
+                    title="Przetwarza pobrane e-maile (także te z błędem) na transakcje">Przetwórz pobrane e-maile</button>
+          </div>
+        }
+      </div>
+      <a class="action" routerLink="/statement-import" routerLinkActive="active" title="Import wyciągu mBank i rekonsyliacja">
+        ⬆ Import wyciągu
+        @if (events.pendingStatementCount(); as n) {
+          <span class="badge" [title]="n + ' operacji z wyciągu czeka na decyzję'">{{ n }}</span>
+        }
+      </a>
+    </div>
+  }
   <div class="app-header__user">
     @if (user(); as u) {
       <span class="app-header__email" [title]="u.email ?? ''">{{ u.email }}</span>
@@ -21,6 +70,13 @@
     }
   </div>
 </header>
+
+@if (toast(); as t) {
+  <div class="toast" [class.toast--error]="t.error" role="status">
+    {{ t.text }}
+    <button type="button" class="toast__close" (click)="toast.set(null)" title="Zamknij">✕</button>
+  </div>
+}
 
 <main>
   <router-outlet />

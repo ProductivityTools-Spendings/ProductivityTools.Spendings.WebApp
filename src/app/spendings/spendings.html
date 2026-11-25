@@ -19,21 +19,22 @@
           </button>
         }
       </span>
-      <button type="button" class="secondary" (click)="processEmails()" [disabled]="busy">
-        {{ runningAction() === 'process' ? 'Przetwarzanie…' : 'Przetwórz e-maile' }}
-      </button>
-      <button type="button" class="secondary" (click)="fillAccounts()" [disabled]="busy">
-        {{ runningAction() === 'fillAccounts' ? 'Uzupełnianie…' : 'Uzupełnij rachunki' }}
-      </button>
-      <button type="button" class="secondary" (click)="fillCategories()" [disabled]="busy">
-        {{ runningAction() === 'fillCategories' ? 'Uzupełnianie…' : 'Uzupełnij kategorie' }}
-      </button>
-      <button type="button" class="secondary" (click)="fillPln()" [disabled]="busy">
-        {{ runningAction() === 'fillPln' ? 'Przeliczanie…' : 'Przelicz na PLN' }}
-      </button>
-      <button type="button" class="secondary" (click)="markDuplicates()" [disabled]="busy">
-        {{ runningAction() === 'markDuplicates' ? 'Oznaczanie…' : 'Oznacz duplikaty' }}
-      </button>
+      <!-- Maintenance tools (normally run automatically after every e-mail processing) -->
+      <div class="tools" (click)="$event.stopPropagation()">
+        <button type="button" class="secondary" [class.open]="toolsOpen()" (click)="toolsOpen.set(!toolsOpen())" [disabled]="busy"
+                aria-haspopup="true" [attr.aria-expanded]="toolsOpen()">
+          {{ runningAction() ? 'Pracuję…' : 'Narzędzia ▾' }}
+        </button>
+        @if (toolsOpen()) {
+          <div class="tools__list" role="menu">
+            <button type="button" role="menuitem" (click)="toolsOpen.set(false); fillAccounts()">Uzupełnij rachunki</button>
+            <button type="button" role="menuitem" (click)="toolsOpen.set(false); fillCategories()">Uzupełnij kategorie</button>
+            <button type="button" role="menuitem" (click)="toolsOpen.set(false); fillPln()">Przelicz na PLN</button>
+            <button type="button" role="menuitem" (click)="toolsOpen.set(false); markDuplicates()">Oznacz duplikaty</button>
+            <p class="tools__hint">Te kroki wykonują się automatycznie po każdym przetworzeniu e-maili.</p>
+          </div>
+        }
+      </div>
       <button type="button" (click)="load()" [disabled]="busy">Odśwież</button>
     </div>
   </header>

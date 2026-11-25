@@ -1,15 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inject, OnInit, signal, untracked } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { Spending } from '../models/spending';
 import { FillResult, RefundState, SpendingService } from '../services/spending.service';
-import { EmailService, ProcessingResult } from '../services/email.service';
+import { AppEventsService } from '../services/app-events.service';
 import { AllegroPurchase, AllegroService } from '../services/allegro.service';
 import { openPreviewWindow, showHtmlInWindow } from '../services/mbank-raw-email.service';
 
-type Action = 'process' | 'fillAccounts' | 'fillCategories' | 'markDuplicates' | 'fillPln';
+type Action = 'fillAccounts' | 'fillCategories' | 'markDuplicates' | 'fillPln';
 
 @Component({
   selector: 'app-spendings',
@@ -20,7 +20,6 @@ type Action = 'process' | 'fillAccounts' | 'fillCategories' | 'markDuplicates' |
 })
 export class Spendings implements OnInit {
   private readonly spendingService = inject(SpendingService);
-  private readonly emailService = inject(EmailService);
   private readonly allegroService = inject(AllegroService);
 
   // --- Allegro order popup ----------------------------------------------------
@@ -308,6 +307,28 @@ export class Spendings implements OnInit {
   protected readonly statusMessage = signal<string | null>(null);
   protected readonly statusFailed = signal(false);
 
+  private readonly appEvents = inject(AppEventsService);
+  /** "Narzędzia ▾" dropdown open. */
+  protected readonly toolsOpen = signal(false);
+
+  constructor() {
+    // reload when transactions changed elsewhere (e.g. "Przetwórz pobrane e-maile" in the header); skip the initial run
+    let first = true;
+    effect(() => {
+      this.appEvents.dataVersion();
+      if (first) {
+        first = false;
+        return;
+      }
+      untracked(() => this.load());
+    });
+  }
+
+  @HostListener('document:click')
+  protected closeTools(): void {
+    this.toolsOpen.set(false);
+  }
+
   ngOnInit(): void {
     this.load();
     this.spendingService.getCategories().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
@@ -346,15 +367,6 @@ export class Spendings implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  /** Triggers server-side processing of raw e-mails (NEW + ERROR), then refreshes the list. */
-  protected processEmails(): void {
-    this.run('process', this.emailService.process(), (r) => ({
-      message: this.describeProcessing(r),
-      failed: !r.started,
-      reload: r.started,
-    }));
   }
 
   /** Fills missing accounts from dictionary_account. */
@@ -434,22 +446,6 @@ export class Spendings implements OnInit {
     });
   }
 
-  private describeProcessing(r: ProcessingResult): string {
-    if (!r.started) {
-      return `Przetwarzanie już trwa w tle – spróbuj za chwilę (oczekujące: ${r.remainingNew}).`;
-    }
-    const parts = [`przetworzono ${r.processed}`];
-    if (r.resetFromError > 0) {
-      parts.push(`ponowiono z błędem ${r.resetFromError}`);
-    }
-    if (r.remainingError > 0) {
-      parts.push(`nadal z błędem ${r.remainingError}`);
-    }
-    if (r.remainingNew > 0) {
-      parts.push(`oczekujące ${r.remainingNew}`);
-    }
-    return `Gotowe: ${parts.join(', ')}.`;
-  }
 
   private describeFill(what: string, missingLabel: string, r: FillResult): string {
     return `Uzupełniono ${what}: ${r.updated}. Nadal ${missingLabel}: ${r.remainingEmpty}.`;

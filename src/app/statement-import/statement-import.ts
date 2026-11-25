@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { SpendingService } from '../services/spending.service';
 import { CategoryPicker } from '../shared/category-picker';
+import { AppEventsService } from '../services/app-events.service';
 
 export interface MBankStatementRowDto {
   id: number | null;
@@ -95,6 +96,7 @@ export class StatementImport implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private apiUrl = environment.apiUrl;
   private spendingService = inject(SpendingService);
+  private appEvents = inject(AppEventsService);
 
   selectedFile: File | null = null;
   selectedFileName = '';
@@ -325,6 +327,8 @@ export class StatementImport implements OnInit {
     };
 
     this.result = normalized;
+    // keep the "Import wyciągu" badge in the header in sync without an extra request
+    this.appEvents.pendingStatementCount.set((normalized.unreconciledCount ?? 0) + (normalized.candidateDateShiftCount ?? 0));
     if (normalized.periodFrom && !this.periodFrom) this.periodFrom = normalized.periodFrom;
     if (normalized.periodTo && !this.periodTo) this.periodTo = normalized.periodTo;
     this.selectedStatementIds.clear();

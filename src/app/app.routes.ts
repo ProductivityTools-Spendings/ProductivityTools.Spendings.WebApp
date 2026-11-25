@@ -16,16 +16,24 @@ import { authGuard, guestGuard } from './auth/auth.guard';
 export const routes: Routes = [
   { path: '', redirectTo: 'spendings', pathMatch: 'full' },
   { path: 'login', component: Login, title: 'Logowanie', canActivate: [guestGuard] },
+
+  // main
   { path: 'spendings', component: Spendings, title: 'Transakcje', canActivate: [authGuard] },
   { path: 'spendings/:id', component: SpendingDetails, title: 'Szczegóły transakcji', canActivate: [authGuard] },
-  { path: 'card-authorizations', component: CardAuthorizations, title: 'Autoryzacje kart', canActivate: [authGuard] },
-  { path: 'emails', component: MbankEmails, title: 'E-maile mBank', canActivate: [authGuard] },
-  { path: 'allegro/emails', component: AllegroEmails, title: 'E-maile Allegro', canActivate: [authGuard] },
-  { path: 'allegro/purchases', component: AllegroPurchases, title: 'Zakupy Allegro', canActivate: [authGuard] },
   { path: 'reports', component: Reports, title: 'Raporty', canActivate: [authGuard] },
   { path: 'statement-import', component: StatementImport, title: 'Import wyciągu', canActivate: [authGuard] },
-  { path: 'dictionary/accounts', component: DictionaryAccounts, title: 'Słownik rachunków', canActivate: [authGuard] },
-  { path: 'dictionary/categories', component: DictionaryCategoryMappings, title: 'Słownik kategorii', canActivate: [authGuard] },
-  { path: 'dictionary/account-rules', component: AccountCategoryRules, title: 'Reguły rachunków', canActivate: [authGuard] },
+
+  // Przeglądanie – source data
+  { path: 'browse/mbank-emails', component: MbankEmails, title: 'E-maile mBank', canActivate: [authGuard] },
+  { path: 'browse/card-authorizations', component: CardAuthorizations, title: 'Autoryzacje kart', canActivate: [authGuard] },
+  { path: 'browse/allegro-emails', component: AllegroEmails, title: 'E-maile Allegro', canActivate: [authGuard] },
+  { path: 'browse/allegro-purchases', component: AllegroPurchases, title: 'Zakupy Allegro', canActivate: [authGuard] },
+
+  // Konfiguracja – dictionaries and rules
+  { path: 'settings/accounts', component: DictionaryAccounts, title: 'Rachunki', canActivate: [authGuard] },
+  { path: 'settings/categories', component: DictionaryCategoryMappings, title: 'Kategorie i grupy', data: { tab: 'groups' }, canActivate: [authGuard] },
+  { path: 'settings/category-mappings', component: DictionaryCategoryMappings, title: 'Nazwa → kategoria', data: { tab: 'mappings' }, canActivate: [authGuard] },
+  { path: 'settings/account-rules', component: AccountCategoryRules, title: 'Reguły rachunków', canActivate: [authGuard] },
+
   { path: '**', redirectTo: 'spendings' },
 ];

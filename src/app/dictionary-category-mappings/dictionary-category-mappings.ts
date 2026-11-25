@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
@@ -101,7 +102,16 @@ export class DictionaryCategoryMappings implements OnInit {
   protected newCategory = '';
   protected readonly creating = signal(false);
 
+  private readonly route = inject(ActivatedRoute);
+  /** Tab fixed by the route (settings/categories = groups, settings/category-mappings = mappings); tabs hidden then. */
+  protected readonly fixedTab = signal<Tab | null>(null);
+
   ngOnInit(): void {
+    const tab = this.route.snapshot.data['tab'] as Tab | undefined;
+    if (tab) {
+      this.fixedTab.set(tab);
+      this.selectTab(tab);
+    }
     this.load();
   }
 
