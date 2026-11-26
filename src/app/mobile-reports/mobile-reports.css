@@ -1,0 +1,154 @@
+.mr {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mr__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.mr__header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.mr__desktop {
+  font-size: 0.85rem;
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.mr__card {
+  padding: 0.9rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.mr__card-head h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.mr__month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mr__month strong {
+  text-transform: capitalize;
+}
+
+.mr__month button {
+  min-width: 2.75rem;
+  min-height: 2.5rem;
+  border: 1px solid #cfd8dc;
+  border-radius: 8px;
+  background: #fff;
+  color: #1976d2;
+  font-size: 1rem;
+}
+
+.mr__month button:disabled {
+  color: #bdbdbd;
+}
+
+.mr__today {
+  display: block;
+  margin: 0.4rem auto 0;
+  border: none;
+  background: none;
+  color: #1976d2;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.mr__pie {
+  display: block;
+  width: min(320px, 100%);
+  margin: 0.75rem auto 0.5rem;
+}
+
+.mr__label {
+  font-size: 15px;
+  font-weight: 700;
+  fill: #000;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 3px;
+  paint-order: stroke;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.mr__center {
+  font-size: 30px;
+  font-weight: 700;
+  fill: #212121;
+  text-anchor: middle;
+}
+
+.mr__center--sub {
+  font-size: 14px;
+  font-weight: 400;
+  fill: #757575;
+}
+
+.mr__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mr__legend li {
+  display: grid;
+  grid-template-columns: 0.8rem 1fr auto 2.8rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.1rem;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.mr__legend li:last-child {
+  border-bottom: none;
+}
+
+.mr__dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+}
+
+.mr__cat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mr__amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mr__pct {
+  color: #757575;
+  font-size: 0.85rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mr__info {
+  color: #757575;
+  text-align: center;
+}
+
+.mr__error {
+  color: #c62828;
+}

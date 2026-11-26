@@ -1,0 +1,50 @@
+<section class="mr">
+  <header class="mr__header">
+    <h2>Raporty</h2>
+    <a class="mr__desktop" routerLink="/reports">pełne raporty ›</a>
+  </header>
+
+  <div class="mr__card">
+    <div class="mr__card-head">
+      <h3>Wydatki narastająco</h3>
+    </div>
+    <div class="mr__month">
+      <button type="button" (click)="shiftMonth(-1)" aria-label="Poprzedni miesiąc">◀</button>
+      <strong>{{ monthLabel() }}</strong>
+      <button type="button" (click)="shiftMonth(1)" [disabled]="isCurrent()" aria-label="Następny miesiąc">▶</button>
+    </div>
+    @if (!isCurrent()) {
+      <button type="button" class="mr__today" (click)="goToCurrent()">wróć do bieżącego miesiąca</button>
+    }
+
+    @if (error()) {
+      <p class="mr__error">{{ error() }}</p>
+    } @else if (loading()) {
+      <p class="mr__info">Ładowanie…</p>
+    } @else if (slices().length === 0) {
+      <p class="mr__info">Brak wydatków w tym miesiącu.</p>
+    } @else {
+      <svg class="mr__pie" [attr.viewBox]="'0 0 ' + C * 2 + ' ' + C * 2" role="img" aria-label="Udział kategorii w wydatkach miesiąca">
+        @for (s of slices(); track s.category) {
+          <path [attr.d]="s.path" [attr.fill]="s.color" class="mr__slice"><title>{{ s.category }}: {{ s.value | number: '1.0-0' : 'pl' }} zł</title></path>
+          @if (s.pct >= 6) {
+            <text class="mr__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.value | number: '1.0-0' : 'pl' }}</text>
+          }
+        }
+        <text class="mr__center" [attr.x]="C" [attr.y]="C - 4">{{ total() | number: '1.0-0' : 'pl' }}</text>
+        <text class="mr__center mr__center--sub" [attr.x]="C" [attr.y]="C + 20">zł {{ isCurrent() ? 'do dziś' : 'w miesiącu' }}</text>
+      </svg>
+
+      <ul class="mr__legend">
+        @for (s of slices(); track s.category) {
+          <li>
+            <span class="mr__dot" [style.background]="s.color"></span>
+            <span class="mr__cat">{{ s.category }}</span>
+            <span class="mr__amount">{{ s.value | number: '1.0-0' : 'pl' }} zł</span>
+            <span class="mr__pct">{{ s.pct | number: '1.0-0' : 'pl' }}%</span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>

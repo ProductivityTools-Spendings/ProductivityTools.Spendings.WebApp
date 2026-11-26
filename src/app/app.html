@@ -83,7 +83,8 @@
       <button type="button" class="drawer__close" (click)="drawerOpen.set(false)" aria-label="Zamknij">✕</button>
     </div>
     <a routerLink="/spendings" routerLinkActive="active">Transakcje</a>
-    <a routerLink="/reports" routerLinkActive="active">Raporty</a>
+    <a routerLink="/m/reports" routerLinkActive="active">Raporty</a>
+    <a routerLink="/reports" routerLinkActive="active">Raporty (pełne)</a>
     <a routerLink="/statement-import" routerLinkActive="active">Import wyciągu
       @if (events.pendingStatementCount(); as n) { <span class="badge">{{ n }}</span> }
     </a>
@@ -123,7 +124,7 @@
 @if (user()) {
   <nav class="tabbar" aria-label="Główne sekcje">
     <a routerLink="/spendings" routerLinkActive="active"><span class="tabbar__icon">☰</span>Transakcje</a>
-    <a routerLink="/reports" routerLinkActive="active"><span class="tabbar__icon">▤</span>Raporty</a>
+    <a routerLink="/m/reports" routerLinkActive="active"><span class="tabbar__icon">▤</span>Raporty</a>
     <a routerLink="/statement-import" routerLinkActive="active"><span class="tabbar__icon">⬆</span>Import
       @if (events.pendingStatementCount(); as n) { <span class="badge tabbar__badge">{{ n }}</span> }
     </a>

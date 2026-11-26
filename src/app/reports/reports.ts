@@ -3,6 +3,7 @@ import { CurrencyPipe, DecimalPipe, formatNumber, NgTemplateOutlet } from '@angu
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { PIE_COLORS, resolveCategoryColor } from './category-colors';
 import { CategoryDetail, CategoryMonth, Hygiene, RecurringPayment, ReportService } from '../services/report.service';
 import {
   aggregateMonth, arcPath, cumulativeShares, dayLabel, donutSlices, elapsedDays, forecast, mergeCategories, niceStep, NO_CATEGORY, ticks, totalSeries,
@@ -88,11 +89,7 @@ interface PivotBarColumn {
 
 type PivotMode = 'categories' | 'groups';
 
-const PIE_COLORS = [
-  '#1976d2', '#e53935', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#fdd835', '#6d4c41',
-  '#3949ab', '#d81b60', '#7cb342', '#f4511e', '#5e35b1', '#00897b', '#c0ca33', '#757575',
-  '#039be5', '#ad1457', '#2e7d32', '#ef6c00', '#4527a0', '#00695c', '#9e9d24', '#546e7a',
-];
+
 
 function ym(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -240,10 +237,7 @@ export class Reports implements OnInit {
    * `_index` (position in the particular chart) is intentionally ignored - it differed between sections.
    */
   protected categoryColor(category: string, _index = 0): string {
-    const own = this.categoryColorMap().get(category);
-    if (own) return own;
-    const slot = this.categoryPaletteIndex().get(category) ?? hashString(category);
-    return PIE_COLORS[slot % PIE_COLORS.length];
+    return resolveCategoryColor(category, this.categoryColorMap(), this.categoryPaletteIndex());
   }
 
   protected groupColor(key: string): string {
@@ -1045,9 +1039,3 @@ export class Reports implements OnInit {
 
 }
 
-/** Small non-negative string hash (palette slot for categories missing from the dictionary). */
-function hashString(text: string): number {
-  let h = 0;
-  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}

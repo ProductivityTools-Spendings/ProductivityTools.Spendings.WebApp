@@ -21,6 +21,8 @@ export const routes: Routes = [
   { path: 'spendings', component: Spendings, title: 'Transakcje', canActivate: [authGuard] },
   { path: 'spendings/:id', component: SpendingDetails, title: 'Szczegóły transakcji', canActivate: [authGuard] },
   { path: 'reports', component: Reports, title: 'Raporty', canActivate: [authGuard] },
+  // separate phone-friendly reports page, loaded on demand (keeps the initial bundle small)
+  { path: 'm/reports', loadComponent: () => import('./mobile-reports/mobile-reports').then((m) => m.MobileReports), title: 'Raporty', canActivate: [authGuard] },
   { path: 'statement-import', component: StatementImport, title: 'Import wyciągu', canActivate: [authGuard] },
 
   // Przeglądanie – source data
