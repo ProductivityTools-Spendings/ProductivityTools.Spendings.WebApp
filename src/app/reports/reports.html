@@ -43,6 +43,147 @@
     <p class="reports__error">Błąd: {{ error() }}</p>
   }
 
+  <!-- ============ Cumulative daily spending ("Wydatki narastająco") ============ -->
+  <section class="card">
+    <div class="card__head">
+      <h3>Wydatki narastająco</h3>
+      <span class="muted daily-nav">
+        <button type="button" class="link" (click)="shiftDailyMonth(-1)" title="Poprzedni miesiąc">◀</button>
+        <strong>{{ dailyMonthLabel() }}</strong>
+        <button type="button" class="link" [disabled]="dailyIsCurrent()" (click)="shiftDailyMonth(1)" title="Następny miesiąc">▶</button>
+        @if (!dailyIsCurrent()) { · <button type="button" class="link" (click)="setDailyMonth(currentMonth)">dziś</button> }
+      </span>
+    </div>
+    @if (dailyLoading()) {
+      <p class="muted">Ładowanie…</p>
+    } @else {
+      <p class="daily-summary">
+        {{ dailyIsCurrent() ? 'do dziś' : 'cały miesiąc' }}: <strong>{{ dailyTotal() | number: '1.0-0' : 'pl' }} zł</strong>
+        @if (dailyIsCurrent() && dailyElapsed() > 0) {
+          · prognoza na koniec miesiąca: <strong>~{{ dailyForecast() | number: '1.0-0' : 'pl' }} zł</strong>
+        }
+        <span class="muted">· poprzedni miesiąc do {{ dailyElapsed() }}. dnia: {{ dailyPrevSameDay() | number: '1.0-0' : 'pl' }} zł</span>
+      </p>
+      <div class="daily-row">
+      <svg class="mat-chart daily-chart" [attr.viewBox]="'0 0 ' + dailyW + ' ' + dailyH" role="img" aria-label="Wydatki narastająco">
+        @for (d of dailyDays(); track d) {
+          @if (d > dailyElapsed()) {
+            <rect class="future" [attr.x]="dailyX(d)" [attr.y]="dailyPad.t" [attr.width]="dailySlot()" [attr.height]="dailyH - dailyPad.t - dailyPad.b" />
+          }
+          <text class="xlabel" [class.today]="d === dailyElapsed() && dailyIsCurrent()" [attr.x]="dailyCX(d)" [attr.y]="dailyH - 12" text-anchor="middle">{{ d }}</text>
+        }
+        @for (t of dailyTicks(); track t.value) {
+          <line [attr.x1]="dailyPad.l" [attr.x2]="dailyW - dailyPad.r" [attr.y1]="t.y" [attr.y2]="t.y" class="grid" [class.zero]="t.value === 0" />
+          <text [attr.x]="dailyPad.l - 8" [attr.y]="t.y + 4" class="ylabel">{{ t.value | number: '1.0-0' : 'pl' }}</text>
+        }
+        @for (s of dailySegments(); track s.key) {
+          <rect class="seg clickable" [class.selected]="dailyDrill()?.category === s.category && dailyDrill()?.day === s.day" [attr.x]="s.x" [attr.y]="s.y" [attr.width]="dailyBarW()" [attr.height]="s.h" [attr.fill]="s.color" (click)="openDailyDrill(s.category, s.day)">
+            <title>{{ s.tip }}</title>
+          </rect>
+        }
+        @if (dailyPrevPoints()) {
+          <polyline class="prev-line" [attr.points]="dailyPrevPoints()" />
+          @if (dailyPrevLast(); as p) {
+            <text class="prev-label" [attr.x]="p.x" [attr.y]="p.y - 5" text-anchor="end">poprzedni miesiąc</text>
+          }
+        }
+        @if (dailyElapsed() > 0) {
+          <text class="total-label" [attr.x]="dailyCX(dailyElapsed())" [attr.y]="dailyLabelY()" text-anchor="middle">{{ dailyTotal() | number: '1.0-0' : 'pl' }}</text>
+        }
+      </svg>
+      @if (dailyPieSlices().length > 0) {
+        <svg class="pie__chart daily-pie" [attr.viewBox]="'0 0 ' + dailyPieC * 2 + ' ' + dailyPieC * 2" role="img" aria-label="Udział kategorii w wydatkach miesiąca">
+          @for (s of dailyPieSlices(); track s.category) {
+            <path [attr.d]="s.path" [attr.fill]="s.color" class="pie__slice clickable" (click)="openDailyDrill(s.category, dailyElapsed())">
+              <title>{{ s.tip }}</title>
+            </path>
+            @if (s.pct >= 5) {
+              <text class="pie__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.value | number: '1.0-0' : 'pl' }}</text>
+            }
+          }
+          <text class="pie__center" [attr.x]="dailyPieC" [attr.y]="dailyPieC - 4">{{ dailyPieTotal() | number: '1.0-0' : 'pl' }}</text>
+          <text class="pie__center pie__center--sub" [attr.x]="dailyPieC" [attr.y]="dailyPieC + 14">zł {{ dailyIsCurrent() ? 'do dziś' : 'w miesiącu' }}</text>
+        </svg>
+      }
+      </div>
+      @if (dailyDrill(); as dd) {
+        <div class="drill">
+          <div class="drill__head">
+            <strong>{{ dailyDrillTitle() }}</strong>
+            <span class="muted">{{ dailyDrillRows().length }} transakcji · razem {{ dailyDrillTotal() | currency: 'PLN' : 'symbol-narrow' : '1.2-2' : 'pl' }}</span>
+            <button type="button" class="link" (click)="closeDailyDrill()">zamknij ✕</button>
+          </div>
+          @if (dailyDrillLoading()) {
+            <p class="muted">Ładowanie…</p>
+          } @else if (dailyDrillRows().length === 0) {
+            <p class="muted">Brak transakcji.</p>
+          } @else {
+            <div class="scroll">
+              <table class="tbl tbl--compact">
+                <thead>
+                  <tr><th>Id</th><th>Data</th><th>Godz.</th><th>Typ</th><th>Nazwa</th><th>Konto</th><th>Kategoria</th><th>Notatka</th><th class="num">Kwota PLN</th></tr>
+                </thead>
+                <tbody>
+                  @for (x of dailyDrillRows(); track x.id) {
+                    <tr>
+                      <td>#{{ x.id }}</td>
+                      <td>{{ x.operationDate }}</td>
+                      <td>{{ x.operationTime }}</td>
+                      <td>{{ x.operationType }}</td>
+                      <td class="ellipsis" [title]="x.name ?? ''">
+                        {{ x.name }}
+                        @if (x.currency && x.currency !== 'PLN') {
+                          <span class="fx-note">({{ x.amount | currency: x.currency : 'symbol-narrow' : '1.2-2' : 'pl' }})</span>
+                        }
+                      </td>
+                      <td>{{ x.account }}</td>
+                      <td>{{ x.category }}</td>
+                      <td class="ellipsis" [title]="x.note ?? ''">{{ x.note }}</td>
+                      <td class="num" [class.refund]="x.amountPln > 0">{{ x.amountPln | number: '1.2-2' : 'pl' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+      <!-- Legend: one line per group (group checkbox – its category chips); flat chip list when there are no groups. -->
+      <ng-template #dailyChip let-c>
+        <label class="mat-cat" [class.mat-cat--off]="!dailyIncluded(c)">
+          <input type="checkbox" [checked]="dailyIncluded(c)" (change)="toggleDailyCategory(c)" />
+          <span class="swatch" [style.background]="dailyColors().get(c)"></span> {{ c }}
+        </label>
+      </ng-template>
+      <div class="mat-cats">
+        <span class="muted">
+          <button type="button" class="link" (click)="dailySetAll(true)">wszystkie</button> ·
+          <button type="button" class="link" (click)="dailySetAll(false)">żadna</button>
+        </span>
+        @if (!hasGroups()) {
+          @for (c of dailyCategories(); track c) {
+            <ng-container *ngTemplateOutlet="dailyChip; context: { $implicit: c }" />
+          }
+        }
+      </div>
+      @if (hasGroups()) {
+        @for (g of dailyGroups(); track g.group) {
+          <div class="mat-cats daily-group-line">
+            <label class="mat-cat daily-group" [class.mat-cat--off]="g.includedCount === 0" [title]="g.includedCount + '/' + g.categories.length + ' kategorii'">
+              <input type="checkbox" [checked]="g.includedCount === g.categories.length" [indeterminate]="g.includedCount > 0 && g.includedCount < g.categories.length" (change)="toggleDailyGroup(g.categories)" />
+              <span class="dot" [style.background]="g.color"></span><strong>{{ g.label }}</strong>
+            </label>
+            <span class="muted">–</span>
+            @for (c of g.categories; track c) {
+              <ng-container *ngTemplateOutlet="dailyChip; context: { $implicit: c }" />
+            }
+          </div>
+        }
+      }
+      <p class="muted">Słupek dnia = suma netto od 1. dnia miesiąca do tego dnia włącznie, w podziale na kategorie (największe na dole). Wydatki rysowane w górę; kategorie z nadwyżką zwrotów nad wydatkami – poniżej osi zera. Linia przerywana = poprzedni miesiąc narastająco dla tych samych kategorii. Prognoza = suma do dziś / liczba dni × dni miesiąca. Kliknięcie segmentu otwiera pod wykresem transakcje tej kategorii od 1. dnia miesiąca do klikniętego dnia włącznie. Pierścień obok = udział zaznaczonych kategorii w wydatkach narastająco do ostatniego narysowanego dnia (kategorie z nadwyżką zwrotów pominięte). Wybór kategorii jest zapamiętywany niezależnie od pozostałych sekcji.</p>
+    }
+  </section>
+
   <!-- ============ 6. Higiena danych ============ -->
   @if (hygiene(); as h) {
     <section class="card">
@@ -338,147 +479,6 @@
         </table>
       </div>
       <p class="muted">Tylko kategorie z ujemnym saldem (wydatki) zaznaczone w tabeli „Wydatki wg kategorii”; udział liczony od sumy tych kategorii w wybranym zakresie. Kliknięcie wycinka lub wiersza otwiera transakcje w tabeli powyżej.@if (hasGroups()) { Pierścień zewnętrzny = grupy, wewnętrzny = kategorie. }</p>
-    }
-  </section>
-
-  <!-- ============ Cumulative daily spending ("Wydatki narastająco") ============ -->
-  <section class="card">
-    <div class="card__head">
-      <h3>Wydatki narastająco</h3>
-      <span class="muted daily-nav">
-        <button type="button" class="link" (click)="shiftDailyMonth(-1)" title="Poprzedni miesiąc">◀</button>
-        <strong>{{ dailyMonthLabel() }}</strong>
-        <button type="button" class="link" [disabled]="dailyIsCurrent()" (click)="shiftDailyMonth(1)" title="Następny miesiąc">▶</button>
-        @if (!dailyIsCurrent()) { · <button type="button" class="link" (click)="setDailyMonth(currentMonth)">dziś</button> }
-      </span>
-    </div>
-    @if (dailyLoading()) {
-      <p class="muted">Ładowanie…</p>
-    } @else {
-      <p class="daily-summary">
-        {{ dailyIsCurrent() ? 'do dziś' : 'cały miesiąc' }}: <strong>{{ dailyTotal() | number: '1.0-0' : 'pl' }} zł</strong>
-        @if (dailyIsCurrent() && dailyElapsed() > 0) {
-          · prognoza na koniec miesiąca: <strong>~{{ dailyForecast() | number: '1.0-0' : 'pl' }} zł</strong>
-        }
-        <span class="muted">· poprzedni miesiąc do {{ dailyElapsed() }}. dnia: {{ dailyPrevSameDay() | number: '1.0-0' : 'pl' }} zł</span>
-      </p>
-      <div class="daily-row">
-      <svg class="mat-chart daily-chart" [attr.viewBox]="'0 0 ' + dailyW + ' ' + dailyH" role="img" aria-label="Wydatki narastająco">
-        @for (d of dailyDays(); track d) {
-          @if (d > dailyElapsed()) {
-            <rect class="future" [attr.x]="dailyX(d)" [attr.y]="dailyPad.t" [attr.width]="dailySlot()" [attr.height]="dailyH - dailyPad.t - dailyPad.b" />
-          }
-          <text class="xlabel" [class.today]="d === dailyElapsed() && dailyIsCurrent()" [attr.x]="dailyCX(d)" [attr.y]="dailyH - 12" text-anchor="middle">{{ d }}</text>
-        }
-        @for (t of dailyTicks(); track t.value) {
-          <line [attr.x1]="dailyPad.l" [attr.x2]="dailyW - dailyPad.r" [attr.y1]="t.y" [attr.y2]="t.y" class="grid" [class.zero]="t.value === 0" />
-          <text [attr.x]="dailyPad.l - 8" [attr.y]="t.y + 4" class="ylabel">{{ t.value | number: '1.0-0' : 'pl' }}</text>
-        }
-        @for (s of dailySegments(); track s.key) {
-          <rect class="seg clickable" [class.selected]="dailyDrill()?.category === s.category && dailyDrill()?.day === s.day" [attr.x]="s.x" [attr.y]="s.y" [attr.width]="dailyBarW()" [attr.height]="s.h" [attr.fill]="s.color" (click)="openDailyDrill(s.category, s.day)">
-            <title>{{ s.tip }}</title>
-          </rect>
-        }
-        @if (dailyPrevPoints()) {
-          <polyline class="prev-line" [attr.points]="dailyPrevPoints()" />
-          @if (dailyPrevLast(); as p) {
-            <text class="prev-label" [attr.x]="p.x" [attr.y]="p.y - 5" text-anchor="end">poprzedni miesiąc</text>
-          }
-        }
-        @if (dailyElapsed() > 0) {
-          <text class="total-label" [attr.x]="dailyCX(dailyElapsed())" [attr.y]="dailyLabelY()" text-anchor="middle">{{ dailyTotal() | number: '1.0-0' : 'pl' }}</text>
-        }
-      </svg>
-      @if (dailyPieSlices().length > 0) {
-        <svg class="pie__chart daily-pie" [attr.viewBox]="'0 0 ' + dailyPieC * 2 + ' ' + dailyPieC * 2" role="img" aria-label="Udział kategorii w wydatkach miesiąca">
-          @for (s of dailyPieSlices(); track s.category) {
-            <path [attr.d]="s.path" [attr.fill]="s.color" class="pie__slice clickable" (click)="openDailyDrill(s.category, dailyElapsed())">
-              <title>{{ s.tip }}</title>
-            </path>
-            @if (s.pct >= 5) {
-              <text class="pie__label" [attr.x]="s.labelX" [attr.y]="s.labelY">{{ s.value | number: '1.0-0' : 'pl' }}</text>
-            }
-          }
-          <text class="pie__center" [attr.x]="dailyPieC" [attr.y]="dailyPieC - 4">{{ dailyPieTotal() | number: '1.0-0' : 'pl' }}</text>
-          <text class="pie__center pie__center--sub" [attr.x]="dailyPieC" [attr.y]="dailyPieC + 14">zł {{ dailyIsCurrent() ? 'do dziś' : 'w miesiącu' }}</text>
-        </svg>
-      }
-      </div>
-      @if (dailyDrill(); as dd) {
-        <div class="drill">
-          <div class="drill__head">
-            <strong>{{ dailyDrillTitle() }}</strong>
-            <span class="muted">{{ dailyDrillRows().length }} transakcji · razem {{ dailyDrillTotal() | currency: 'PLN' : 'symbol-narrow' : '1.2-2' : 'pl' }}</span>
-            <button type="button" class="link" (click)="closeDailyDrill()">zamknij ✕</button>
-          </div>
-          @if (dailyDrillLoading()) {
-            <p class="muted">Ładowanie…</p>
-          } @else if (dailyDrillRows().length === 0) {
-            <p class="muted">Brak transakcji.</p>
-          } @else {
-            <div class="scroll">
-              <table class="tbl tbl--compact">
-                <thead>
-                  <tr><th>Id</th><th>Data</th><th>Godz.</th><th>Typ</th><th>Nazwa</th><th>Konto</th><th>Kategoria</th><th>Notatka</th><th class="num">Kwota PLN</th></tr>
-                </thead>
-                <tbody>
-                  @for (x of dailyDrillRows(); track x.id) {
-                    <tr>
-                      <td>#{{ x.id }}</td>
-                      <td>{{ x.operationDate }}</td>
-                      <td>{{ x.operationTime }}</td>
-                      <td>{{ x.operationType }}</td>
-                      <td class="ellipsis" [title]="x.name ?? ''">
-                        {{ x.name }}
-                        @if (x.currency && x.currency !== 'PLN') {
-                          <span class="fx-note">({{ x.amount | currency: x.currency : 'symbol-narrow' : '1.2-2' : 'pl' }})</span>
-                        }
-                      </td>
-                      <td>{{ x.account }}</td>
-                      <td>{{ x.category }}</td>
-                      <td class="ellipsis" [title]="x.note ?? ''">{{ x.note }}</td>
-                      <td class="num" [class.refund]="x.amountPln > 0">{{ x.amountPln | number: '1.2-2' : 'pl' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </div>
-      }
-      <!-- Legend: one line per group (group checkbox – its category chips); flat chip list when there are no groups. -->
-      <ng-template #dailyChip let-c>
-        <label class="mat-cat" [class.mat-cat--off]="!dailyIncluded(c)">
-          <input type="checkbox" [checked]="dailyIncluded(c)" (change)="toggleDailyCategory(c)" />
-          <span class="swatch" [style.background]="dailyColors().get(c)"></span> {{ c }}
-        </label>
-      </ng-template>
-      <div class="mat-cats">
-        <span class="muted">
-          <button type="button" class="link" (click)="dailySetAll(true)">wszystkie</button> ·
-          <button type="button" class="link" (click)="dailySetAll(false)">żadna</button>
-        </span>
-        @if (!hasGroups()) {
-          @for (c of dailyCategories(); track c) {
-            <ng-container *ngTemplateOutlet="dailyChip; context: { $implicit: c }" />
-          }
-        }
-      </div>
-      @if (hasGroups()) {
-        @for (g of dailyGroups(); track g.group) {
-          <div class="mat-cats daily-group-line">
-            <label class="mat-cat daily-group" [class.mat-cat--off]="g.includedCount === 0" [title]="g.includedCount + '/' + g.categories.length + ' kategorii'">
-              <input type="checkbox" [checked]="g.includedCount === g.categories.length" [indeterminate]="g.includedCount > 0 && g.includedCount < g.categories.length" (change)="toggleDailyGroup(g.categories)" />
-              <span class="dot" [style.background]="g.color"></span><strong>{{ g.label }}</strong>
-            </label>
-            <span class="muted">–</span>
-            @for (c of g.categories; track c) {
-              <ng-container *ngTemplateOutlet="dailyChip; context: { $implicit: c }" />
-            }
-          </div>
-        }
-      }
-      <p class="muted">Słupek dnia = suma netto od 1. dnia miesiąca do tego dnia włącznie, w podziale na kategorie (największe na dole). Wydatki rysowane w górę; kategorie z nadwyżką zwrotów nad wydatkami – poniżej osi zera. Linia przerywana = poprzedni miesiąc narastająco dla tych samych kategorii. Prognoza = suma do dziś / liczba dni × dni miesiąca. Kliknięcie segmentu otwiera pod wykresem transakcje tej kategorii od 1. dnia miesiąca do klikniętego dnia włącznie. Pierścień obok = udział zaznaczonych kategorii w wydatkach narastająco do ostatniego narysowanego dnia (kategorie z nadwyżką zwrotów pominięte). Wybór kategorii jest zapamiętywany niezależnie od pozostałych sekcji.</p>
     }
   </section>
 
